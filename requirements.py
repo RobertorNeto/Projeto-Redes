@@ -1,5 +1,5 @@
 #### Critérios de correção / Checklist ####
-# - [ ] CLI com `/peers`, `/connect`, `/msg` (`@peer`, `#namespace`, `*`), `/routes`, `/watch`.  
+# - [X] CLI com `/peers`, `/connect`, `/msg` (`@peer`, `#namespace`, `*`), `/routes`, `/watch`.  
 # - [ ] `REGISTER/DISCOVER/UNREGISTER` + atualização automática da lista.  
 # - [ ] Servidor e cliente TCP entre peers; `HELLO/HELLO_OK`; `PING/PONG`.  
 # - [ ] Envio `SEND` (unicast) com **ACK obrigatório**.  

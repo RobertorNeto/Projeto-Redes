@@ -20,3 +20,13 @@
 #       - Timestamp + número aleatório de n bits no fim (geração de id aleatório)
 #       - Geração de um id com nome do emissor + número incrementado sequencialmente
 #       - Todo peer deve guardar, sem repetição, os msg_ids já recebidos (evitar duplicatas)
+
+def sendMessage(command):
+    if command[0] == '*':
+        return
+    elif command[0][0] == '#':
+        return
+    elif command[0][0] == '@':
+        return
+    else:
+        print("Formato de mensagem inválido! Digite '/help' para ver o uso correto.")

@@ -9,3 +9,6 @@
 #       - `internal_error`
 #       - `ack_timeout`
 #       - `message_too_large`
+
+def logEnable():
+    return

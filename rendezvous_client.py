@@ -4,3 +4,6 @@
 #   a) Implementação do Register
 #   b) Implementação do Discover
 #   c) Implementação do Unregister
+
+def connectPeers(receiver):
+    return

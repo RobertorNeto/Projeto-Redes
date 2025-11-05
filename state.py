@@ -9,3 +9,6 @@
 #       - Só disponível sob demanda, e quando ambas partes da comunicação suportarem a operação
 #       - Requisitadas com uma mensagem METRICS_REQ, cuja resposta é um METRICS com os dados
 #       - Dados sugeridos : 'rtts_ms', 'sent_count', 'recv_count', 'last_seen' (todos relativos ao emissor)
+
+def showPeers():
+    return
