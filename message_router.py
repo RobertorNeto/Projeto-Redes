@@ -1,3 +1,4 @@
+import asyncio
 ####    Roteamento das mensagens (PUB, SUB, SEND)    ####
 
 # 1. Funcionamento da conexão entre peers
@@ -21,7 +22,8 @@
 #       - Geração de um id com nome do emissor + número incrementado sequencialmente
 #       - Todo peer deve guardar, sem repetição, os msg_ids já recebidos (evitar duplicatas)
 
-def sendMessage(command):
+async def sendMessage(command, client):
+    msg = command[1:]
     if command[0] == '*':
         return
     elif command[0][0] == '#':
@@ -30,3 +32,11 @@ def sendMessage(command):
         return
     else:
         print("Formato de mensagem inválido! Digite '/help' para ver o uso correto.")
+
+async def checkMessages(client):
+    for msg in client.messages:
+        ''''''
+    return
+
+async def pingPeers(client):
+    return

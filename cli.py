@@ -9,10 +9,15 @@
 #   f) '/watch' : habilitar log
 #   g) '/quit' : sair do cliente
 
-def initialScreen():
+async def initialScreen():
     print("\nBem-vindo ao pyp2p! Veja os comandos possíveis")
     print("")
     print("'/peers' : mostra lista dos peers ativos")
+    print("'/register' #<namespace> <name> <port> : se registra a um namespace com o nome <name>")
+    print("'/discover' #<namespace> : retorna todos os peers conectados à <namespace>")
+    print("'/discover' : retorna todos os peers da rede")
+    print("'/unregister' #<namespace> <name> <port> : se desconecta de um namespace")
+    print("'/unregister' #<namespace> <name> <port> : se desconecta de um namespace")
     print("'/connect <peer_id>' : conexão direta")
     print("'/msg @<peer> <mensagem>' : mensagem direta")
     print("'/msg #<namespace> <mensagem>' : mensagem para o namespace")

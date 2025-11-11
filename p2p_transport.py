@@ -1,3 +1,7 @@
+import asyncio
+import json
+import time
+
 ####    Gestão da camada TCP (HELLO, BYE, PING/PONG)    ####
 
 # 1. Implementar conexão entre peers
@@ -16,3 +20,19 @@
 #       - Guardar no log o encerramento solicitado
 #       - responder com BYE_OK
 #       - Encerrar a conexão e liberar os recursos
+
+async def connectPeers(command):
+    json_string = {"type" : "HELLO", "peer_id" : f"{command}", "version" : 1.0, "features" : ["metrics", "ack"]}
+    message = json.dump(json_string)
+    reader, writer = await asyncio.open_connection(host, port)
+    writer.write(message.encode('UTF-8'))
+    await writer.drain()
+    try:
+        response = await asyncio.wait_for(reader.read(32000), timeout=10)
+        writer.close()
+        await writer.wait_closed()
+
+    
+    except TimeoutError:
+        print("Não foi possível estabelecer conexão!")
+        return False

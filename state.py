@@ -1,3 +1,4 @@
+import asyncio
 ####    Memória de peers/rotas/mensagens deduplicadas   ####
 
 # 1. Diagnóstico / Estatísticas
@@ -10,5 +11,5 @@
 #       - Requisitadas com uma mensagem METRICS_REQ, cuja resposta é um METRICS com os dados
 #       - Dados sugeridos : 'rtts_ms', 'sent_count', 'recv_count', 'last_seen' (todos relativos ao emissor)
 
-def showPeers():
+async def showPeers():
     return
