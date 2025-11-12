@@ -22,15 +22,7 @@ import asyncio
 #       - Geração de um id com nome do emissor + número incrementado sequencialmente
 #       - Todo peer deve guardar, sem repetição, os msg_ids já recebidos (evitar duplicatas)
 
-async def sendMessage(command, client):
-    msg = command[1:]
-    if command[0] == '*':
-        return
-    elif command[0][0] == '#':
-        return
-    elif command[0][0] == '@':
-        return
-    else:
+async def sendMessage(destiny, message, client):
         print("Formato de mensagem inválido! Digite '/help' para ver o uso correto.")
 
 async def checkMessages(client):
@@ -38,5 +30,15 @@ async def checkMessages(client):
         ''''''
     return
 
+async def pubMessage(mode, destiny, client):
+    return
+
 async def pingPeers(client):
+
+    # para cada entrada na lista de peers, envia um ping caso o peer esteja disponível
+    for peer in client.peersConnected:
+        if peer["status"] == "CONNECTED":
+            jsonString = {}
+
+    await asyncio.sleep(30)
     return

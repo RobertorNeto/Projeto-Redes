@@ -1,34 +1,46 @@
 from logger import *
 from cli import *
 from message_router import *
-from p2p_transport import *
-from rendezvous_client import *
+from peer_connection import *
+from p2p_client import *
+from peer_list import *
 from state import *
 import asyncio
 import aioconsole
 
+# classe padrão para tratar do cliente 
 class Client:
 
-    def __init__(self, name, port):
+    def __init__(self, name, port, namespace):
         self.name = name
         self.port = port
-        self.peersConnected = []
+        self.namespace = namespace
+        self.peersConnected = {}
         self.messages = set()
-    
-    def addPeer(port, id, self):
-        newPeer = tuple(port, id)
-        self.peersConnected.add(newPeer)
 
-    def removePeer(port, id, self):
-        newPeer = tuple(port, id)
-        self.peersConnected.remove(newPeer)
+    # remove um peer da lista do cliente quando da conexão perdida no PING
+    def removePeerPing(id, self):
+        self.peersConnected[id]["status"] = "LOST"
+    
+    # remove um peer da lista do cliente quando do BYE
+    def removePeer(id, self):
+        self.peersConnected[id]["status"] = "CLOSED"
 
 
 async def main():
 
-    client = Client("Davi", 8080)
+    # Abre o arquivo 'configs.json' para carregamento dos parâmetros e criação do cliente
+    with open("config.json", "r") as config_file:
+        configs = json.load(config_file)
+        client = Client(configs["name"], configs["port"], configs["namespace"])
+    
+    # tenta fazer a conexão inicial do cliente com o rendezvous
+    await registerPeer(f"{client.name}@{client.namespace}", client.port)
 
+    # chama a tela inicial de comandos
     await initialScreen()
+
+    # faz o loop do cliente de modo assíncrono com a espera de comandos do usuário
     asyncio.create_task(clientLoop(client))
     ans = 0
     while not ans:
@@ -36,33 +48,55 @@ async def main():
 
 
 async def clientLoop(client):
+
+
+    # faz o discover rotineiro dos peers conectados no rendezvous e atualiza a lista
+    connectedPeers = discoverPeers([])
+    updatePeerList(client, connectedPeers)
+
+    # manda mensagens de HELLO para os clientes novos (EM ESPERA)
+    for peer in client.peersConnected:
+        if peer["status"] == "WAITING":
+            reader, writer = await asyncio.open_connection(peer["address"], peer["port"])
+            sendHello(peer, reader, writer)
+            asyncio.create_task(listenToPeer(reader, peer, writer))
+
+    # faz o PING para todos os clientes disponíveis (~PERDIDOS) na lista de peers do cliente
     pingPeers(client)
+
     while True:
+
+        # checa as mensagens do cliente e faz um sleep para evitar carga na CPU
         await checkMessages(client)
         await asyncio.sleep(2)
 
 async def commandRedirection(client):
+
+    # faz o redirecionamento de rotinas para o comando digitado pelo usuário
     commands = (await aioconsole.ainput()).split(' ')
     if commands[0] == "/peers":
-        showPeers()
-    elif commands[0] == "/connect":
-        connectPeers(commands[1], client)
-    elif commands[0] == "/discover":
-        discoverPeers(commands)
-    elif commands[0] == "/register":
-        registerPeer(commands[1], commands[2])
-    elif commands[0] == "/unregister":
-        unregister(commands[0], commands[1], commands[2])
+        showPeers(commands[1], client)
+
     elif commands[0] == "/msg":
-        commands.remove("/msg")
-        sendMessage(commands, client)
-    elif commands[0] == "/watch":
-        logEnable()
+        sendMessage(commands[1], commands[2], client)
+
+    elif commands[0] == "/pub":
+        pubMessage(commands[1], commands[2], client)
+
+    elif commands[0] == "/conn":
+        ''''''
+
+    elif commands[0] == "/reconnect":
+        ''''''
+        
     elif commands[0] == "/quit":
+        unregister(client.namespace, client.name, client.port)
         print("Terminando execução...")
         return 1
+    
     elif commands[0] == "/help":
         initialScreen()
+
     else:
         print("Comando inválido! Digite '/help' para saber comandos disponíveis.")
     return 0
