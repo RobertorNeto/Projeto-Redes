@@ -5,7 +5,7 @@ import asyncio
 async def registerPeer(peer, port):
     
     # cria a mensagem no formato REGISTER e a converte para objeto json
-    jsonString = {"type" : "REGISTER", "name" : peer, "port" : port, "ttl" : 7200}
+    jsonString = {"type" : "REGISTER", "name" : peer, "port" : port, "ttl" : 7200} + '\n'
     message = json.dump(jsonString)
 
     # le os parametros do servidor pelo arquivo 'configs.json' e abre a conexão
@@ -38,7 +38,7 @@ async def registerPeer(peer, port):
 async def unregister(namespace, peer, port):
 
     # cria a mensagem no formato UNREGISTER e a converte para objeto json
-    jsonString = {"type" : "UNREGISTER", "namespace" : namespace, "name" : peer, "port" : port, "ttl" : 7200}
+    jsonString = {"type" : "UNREGISTER", "namespace" : namespace, "name" : peer, "port" : port, "ttl" : 7200} + '\n'
     message = json.dump(jsonString)
 
     # le os parametros do servidor pelo arquivo 'configs.json' e abre a conexão
@@ -73,7 +73,7 @@ async def discoverPeers(receiver):
     # verifica se é um discover de namespace ou total
     if len(receiver) > 0:
         # cria a mensagem apropriada
-        jsonString = {"type" : "DISCOVER", "namespace" : receiver[0]}
+        jsonString = {"type" : "DISCOVER", "namespace" : receiver[0]} + '\n'
         message = json.dump(jsonString)
         
         # le os parametros do servidor pelo arquivo 'configs.json' e abre a conexão
@@ -101,7 +101,7 @@ async def discoverPeers(receiver):
         
     else:
         # cria a mensagem apropriada
-        jsonString = {"type" : "DISCOVER"}
+        jsonString = {"type" : "DISCOVER"} + '\n'
         message = json.dump(jsonString)
         
         # le os parametros do servidor pelo arquivo 'configs.json' e abre a conexão

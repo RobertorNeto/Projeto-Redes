@@ -26,7 +26,7 @@ async def sendHello(client, reader, writer):
     # carrega as informações de 'configs.json'
     with open("oconfigs.json", "r") as configsFile:
         configs = json.load(configsFile)
-        jsonString = {"type" : "HELLO", "peer_id" : client, "version" : configs["version"], "features" : configs["features"]}
+        jsonString = {"type" : "HELLO", "peer_id" : client, "version" : configs["version"], "features" : configs["features"]} + '\n'
         message = json.dump(jsonString)
 
         writer.write(message.encode('UTF-8'))
@@ -60,7 +60,7 @@ async def sendHelloOk(client, reader, writer):
         configs = json.load(configsFile)
     
     # prepara a mensagem json
-    jsonString = {"type" : "HELLO_OK", "peer_id" : client, "version" : configs["version"], "features" : configs["features"]}
+    jsonString = {"type" : "HELLO_OK", "peer_id" : client, "version" : configs["version"], "features" : configs["features"]} + '\n'
     message = json.dump(jsonString)
 
     # abre a conexão e escreve a mensagem
