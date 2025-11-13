@@ -92,14 +92,14 @@ async def commandRedirection(client):
         
     elif commands[0] == "/quit":
         unregister(client.namespace, client.name, client.port)
-        print("Terminando execução...")
+        logger.info("Terminando execução...")
         return 1
     
     elif commands[0] == "/help":
         initialScreen()
 
     else:
-        print("Comando inválido! Digite '/help' para saber comandos disponíveis.")
+        logger.warning("Comando inválido! Digite '/help' para saber comandos disponíveis.")
     return 0
 
 asyncio.run(main())

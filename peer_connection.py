@@ -1,6 +1,7 @@
 import asyncio
 import json
 import time
+from logger import logger
 
 ####    Gestão da camada TCP (HELLO, BYE, PING/PONG)    ####
 
@@ -36,8 +37,8 @@ async def sendHello(client, reader, writer):
         try:
             response = await asyncio.wait_for(reader.read(32000), timeout=10)
 
-        except TimeoutError:
-            print(f"Não foi possível se conectar ao peer {client["name"]}!")
+        except TimeoutError as error:
+            logger.error(f"Não foi possível se conectar ao peer {client['name']}!", error)
 
         # fecha a conexão e espera o buffer
         writer.close()
@@ -74,11 +75,11 @@ async def listenToPeer(reader, peer_id, writer):
         while True:
             data = await reader.readline()
             msg = json.loads(data.decode())
-            print(f"[{peer_id}] Mensagem recebida:", msg)
+            logger.info(f"[{peer_id}] Mensagem recebida: {msg}")
             
             # responde ao HELLO com um HELLO_OK
             if (msg["type"] == "HELLO"):
                 sendHelloOk(peer_id, reader, writer)
         
-    except asyncio.CancelledError:
-        print(f"Task de {peer_id} cancelada.")
+    except asyncio.CancelledError as error:
+        logger.error(f"Task de {peer_id} cancelada.", error)

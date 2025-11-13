@@ -1,4 +1,5 @@
 import asyncio
+from logger import logger
 ####    Roteamento das mensagens (PUB, SUB, SEND)    ####
 
 # 1. Funcionamento da conexão entre peers
@@ -23,7 +24,7 @@ import asyncio
 #       - Todo peer deve guardar, sem repetição, os msg_ids já recebidos (evitar duplicatas)
 
 async def sendMessage(destiny, message, client):
-        print("Formato de mensagem inválido! Digite '/help' para ver o uso correto.")
+        logger.warning("Formato de mensagem inválido! Digite '/help' para ver o uso correto.")
 
 async def checkMessages(client):
     for msg in client.messages:
