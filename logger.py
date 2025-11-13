@@ -27,7 +27,7 @@ from datetime import datetime
 LOG_DIR = "logs"
 LOG_FILE = os.path.join(LOG_DIR, f"app_{datetime.now().strftime('%Y%m%d')}.log")
 
-def setup_logger():
+def setupLogger():
     """Inicializa e configura o logger principal."""
     if not os.path.exists(LOG_DIR):
         os.makedirs(LOG_DIR)
