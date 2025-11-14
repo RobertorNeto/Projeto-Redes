@@ -52,46 +52,47 @@ async def clientLoop(client):
 
 
     # faz o discover rotineiro dos peers conectados no rendezvous e atualiza a lista
-    connectedPeers = discoverPeers([])
-    updatePeerList(client, connectedPeers)
+    connectedPeers = await discoverPeers([])
+    await updatePeerList(client, connectedPeers)
 
     # manda mensagens de HELLO para os clientes novos (EM ESPERA)
     for peer in client.peersConnected:
         reader, writer = await asyncio.open_connection(peer["address"], peer["port"])
         if peer["status"] == "WAITING":
-            sendHello(peer, reader, writer)
+            await sendHello(peer, reader, writer)
             asyncio.create_task(listenToPeer(client, reader, peer, writer))
 
     # faz o PING para todos os clientes disponíveis (~PERDIDOS) na lista de peers do cliente
         elif peer["status"] == "CONNECTED":
-            pingPeers(client, reader, writer)
+            await pingPeers(client, reader, writer)
 
 async def commandRedirection(client):
 
     # faz o redirecionamento de rotinas para o comando digitado pelo usuário
     commands = await async_input("Enter command: ")
+    commands = commands.split(" ")
     if commands[0] == "/peers":
-        showPeers(commands[1], client)
+        await showPeers(commands[1], client)
 
     elif commands[0] == "/msg":
-        sendMessage(commands[1], commands[2], client)
+        await sendMessage(commands[1], commands[2], client)
 
     elif commands[0] == "/pub":
-        pubMessage(commands[1], commands[2], client)
+        await pubMessage(commands[1], commands[2], client)
 
     elif commands[0] == "/conn":
-        showConns(client)
+        await showConns(client)
 
     elif commands[0] == "/reconnect":
         ''''''
         
     elif commands[0] == "/quit":
-        unregister(client.namespace, client.name, client.port)
+        await unregister(client.namespace, client.name, client.port)
         print("Terminando execução...")
         return 1
     
     elif commands[0] == "/help":
-        initialScreen()
+        await initialScreen()
 
     else:
         print("Comando inválido! Digite '/help' para saber comandos disponíveis.")

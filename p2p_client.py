@@ -101,8 +101,8 @@ async def discoverPeers(receiver):
         jsonString = '{"type" : "DISCOVER"}' + '\n'
         message = json.dumps(jsonString)
         
-        # le os parametros do servidor pelo arquivo 'configs.json' e abre a conexão
-        with open("configs.json", "r") as configFile:
+        # le os parametros do servidor pelo arquivo 'config.json' e abre a conexão
+        with open("config.json", "r") as configFile:
             configs = json.load(configFile)
         reader, writer = await asyncio.open_connection(configs["server_address"], configs["server_port"])
 
@@ -121,6 +121,11 @@ async def discoverPeers(receiver):
         responseMsg = responseMsg.strip()
 
         responseMsg = json.loads(responseMsg)
+
+        if responseMsg["status"] != "OK":
+            logger.error("Não foi possível se conectar ao servidor!")
+            return None
+
         return responseMsg["peers"]
     
     except TimeoutError as error:
