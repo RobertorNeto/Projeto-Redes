@@ -40,6 +40,10 @@ async def sendHello(client, reader, writer, peer):
             responseMsg = response.decode('UTF-8')
             responseMsg = responseMsg.strip()
 
+            if responseMsg == '':
+                logger.error(f"Resposta vazia do peer {peer}!")
+                return
+            
             # decodifica a mensagem e atualiza o status do cliente
             responseMsg = json.loads(responseMsg)
 

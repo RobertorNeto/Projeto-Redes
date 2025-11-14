@@ -19,7 +19,7 @@ async def showPeers(type, client):
     # pega o id e separa em um dict, onde as chaves são os namespaces
     if type == "*":
         for peer in client.peersConnected:
-            id = str(peer.split('@'))
+            id = (peer.split('@'))
             name, namespace = id[0], id[1]
             if namespace not in peers:
                 peers[namespace] = [name]
