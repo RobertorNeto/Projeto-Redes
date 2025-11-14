@@ -1,11 +1,12 @@
 {
     "name" : "davi",
-    "port" : 8081,
+    "port" : 7070,
     "namespace" : "UNB",
     "ping_timer" : 30,
     "timeout_timer" : 50,
-    "server_address" : "pyp2p.mfcaetano.cc",
+    "server_address" : "45.171.101.167",
     "server_port" : 8080,
     "version" : 1.0,
-    "features" : ["ack", "metrics", "log"]
+    "features" : ["ack", "metrics", "log"],
+    "max_reconnect_attempts" : 2
 }

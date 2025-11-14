@@ -6,7 +6,6 @@ from p2p_client import *
 from peer_list import *
 from state import *
 import asyncio
-import aioconsole
 
 # classe padrão para tratar do cliente 
 class Client:
@@ -16,7 +15,9 @@ class Client:
         self.port = port
         self.namespace = namespace
         self.peersConnected = {}
-        self.messages = set()
+        self.inbound = set()
+        self.outbound = set()
+        self.backoffTimer = {}
 
     # remove um peer da lista do cliente quando da conexão perdida no PING
     def removePeerPing(id, self):
@@ -28,7 +29,6 @@ class Client:
 
 
 async def main():
-    setupLogger()
 
     # Abre o arquivo 'configs.json' para carregamento dos parâmetros e criação do cliente
     with open("config.json", "r") as config_file:
@@ -57,24 +57,19 @@ async def clientLoop(client):
 
     # manda mensagens de HELLO para os clientes novos (EM ESPERA)
     for peer in client.peersConnected:
+        reader, writer = await asyncio.open_connection(peer["address"], peer["port"])
         if peer["status"] == "WAITING":
-            reader, writer = await asyncio.open_connection(peer["address"], peer["port"])
             sendHello(peer, reader, writer)
-            asyncio.create_task(listenToPeer(reader, peer, writer))
+            asyncio.create_task(listenToPeer(client, reader, peer, writer))
 
     # faz o PING para todos os clientes disponíveis (~PERDIDOS) na lista de peers do cliente
-    pingPeers(client)
-
-    while True:
-
-        # checa as mensagens do cliente e faz um sleep para evitar carga na CPU
-        await checkMessages(client)
-        await asyncio.sleep(2)
+        elif peer["status"] == "CONNECTED":
+            pingPeers(client, reader, writer)
 
 async def commandRedirection(client):
 
     # faz o redirecionamento de rotinas para o comando digitado pelo usuário
-    commands = (await aioconsole.ainput()).split(' ')
+    commands = await async_input("Enter command: ")
     if commands[0] == "/peers":
         showPeers(commands[1], client)
 
@@ -85,21 +80,27 @@ async def commandRedirection(client):
         pubMessage(commands[1], commands[2], client)
 
     elif commands[0] == "/conn":
-        ''''''
+        showConns(client)
 
     elif commands[0] == "/reconnect":
         ''''''
         
     elif commands[0] == "/quit":
         unregister(client.namespace, client.name, client.port)
-        logger.info("Terminando execução...")
+        print("Terminando execução...")
         return 1
     
     elif commands[0] == "/help":
         initialScreen()
 
     else:
-        logger.warning("Comando inválido! Digite '/help' para saber comandos disponíveis.")
+        print("Comando inválido! Digite '/help' para saber comandos disponíveis.")
     return 0
+
+async def async_input(prompt: str = "") -> str:
+
+    # define a função para tratar do input assíncrono do usuário
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, lambda: input(prompt))
 
 asyncio.run(main())

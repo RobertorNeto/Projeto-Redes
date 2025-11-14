@@ -41,3 +41,20 @@ async def showPeers(type, client):
         for p in peers[nSpace]:
             print(f"\t- {p}")
     return
+
+async def showConns(client):
+
+    # imprime todas as conexões iniciadas pelo cliente (inbound) e recebidas pelo cliente (outbound)
+    print(f"Inbound Connections ({len(client.inbound)})")
+    for inbound in client.inbound:
+        print(f"\t-{inbound}")
+
+    print(f"Outbound Connections ({len(client.outbound)})")
+    for outbound in client.outbound:
+        print(f"\t-{outbound}")
+
+async def updateRttTable(rtt, peerPair, client):
+    return
+
+async def showRtt(client):
+    return

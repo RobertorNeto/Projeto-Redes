@@ -1,7 +1,8 @@
 import asyncio
+from asyncio.log import logger
 import json
 import time
-from logger import logger
+import uuid
 
 ####    Gestão da camada TCP (HELLO, BYE, PING/PONG)    ####
 
@@ -27,7 +28,7 @@ async def sendHello(client, reader, writer):
     # carrega as informações de 'configs.json'
     with open("oconfigs.json", "r") as configsFile:
         configs = json.load(configsFile)
-        jsonString = {"type" : "HELLO", "peer_id" : client, "version" : configs["version"], "features" : configs["features"]} + '\n'
+        jsonString = f'{{"type" : "HELLO", "peer_id" : {client}, "version" : {configs["version"]}, "features" : {configs["features"]}}}' + '\n'
         message = json.dump(jsonString)
 
         writer.write(message.encode('UTF-8'))
@@ -36,22 +37,25 @@ async def sendHello(client, reader, writer):
         # espera o retorno por 10 segundos
         try:
             response = await asyncio.wait_for(reader.read(32000), timeout=10)
+            responseMsg = response.decode('UTF-8')
+            responseMsg = responseMsg.strip()
+
+            # decodifica a mensagem e atualiza o status do cliente
+            responseMsg = json.loads(responseMsg)
+
+            if responseMsg["status"] == "HELLO_OK":
+                client.peersConnected[client]["status"] = "CONNECTED"
+
+                # adiciona o peer conectado aos inbounds caso faça contato
+                if responseMsg["peer_id"] not in client.inbound:
+                    client.outbound.insert(responseMsg["peer_id"])  
 
         except TimeoutError as error:
             logger.error(f"Não foi possível se conectar ao peer {client['name']}!", error)
-
+            
         # fecha a conexão e espera o buffer
         writer.close()
         await writer.wait_closed()
-
-        # decodifica a mensagem e atualiza o status do cliente
-        responseMsg = response.decode('UTF-8')
-        if responseMsg["status"] == "HELLO_OK":
-           client.peersConnected[client]["status"] = "CONNECTED"
-
-            # adicionar inbound connection
-        else:
-            return False
     return
 
 async def sendHelloOk(client, reader, writer):
@@ -61,25 +65,57 @@ async def sendHelloOk(client, reader, writer):
         configs = json.load(configsFile)
     
     # prepara a mensagem json
-    jsonString = {"type" : "HELLO_OK", "peer_id" : client, "version" : configs["version"], "features" : configs["features"]} + '\n'
-    message = json.dump(jsonString)
+    jsonString = f'{{"type" : "HELLO_OK", "peer_id" : {client}, "version" : {configs["version"]}, "features" : {configs["features"]}}}' + '\n'
+    message = json.dumps(jsonString)
 
     # abre a conexão e escreve a mensagem
     writer.write(message.encode('UTF-8'))
     await writer.drain()
 
-async def listenToPeer(reader, peer_id, writer):
+async def listenToPeer(client, reader, peer_id, writer):
     
     # implementa a escuta por mensagens vindas de cada peer
     try:
         while True:
             data = await reader.readline()
             msg = json.loads(data.decode())
-            logger.info(f"[{peer_id}] Mensagem recebida: {msg}")
+            msg = msg.strip()
+
+            msg = json.loads(msg)
+            print(f"[{peer_id}] Mensagem recebida:", msg)
             
-            # responde ao HELLO com um HELLO_OK
+            # responde ao HELLO com um HELLO_OK e adiciona o peer à lista de inbounds do cliente
             if (msg["type"] == "HELLO"):
                 sendHelloOk(peer_id, reader, writer)
-        
+                if msg["peer_id"] not in client.outbound:
+                    client.inbound.insert(msg["peer_id"])
+            
     except asyncio.CancelledError as error:
         logger.error(f"Task de {peer_id} cancelada.", error)
+
+async def pingPeers(client, reader, writer):
+
+    # para cada entrada na lista de peers, envia um ping / pong caso o peer esteja disponível
+    for peer in client.peersConnected:
+        if peer["status"] == "CONNECTED":
+
+            # ve se o emissor da mensagem requer um PING (outbound) ou PONG (inbound)
+            if peer in client.outbound:
+                currentTime = time.time()
+                json_string = f'{{"type" : "PING", "msg_id" : {str(uuid.UUID)}, "timestamp" : {currentTime}, "ttl" : 1}}' + '\n'
+                message = json.dumps(json_string)
+                message.encode('UTF-8')
+
+                try:
+                    response = await asyncio.wait_for(reader.read(32000), timeout=10)
+                    response = response.decode('UTF-8')
+                    response = response.strip()
+
+                    # decodifica a mensagem e retorna o cálculo do RTT para atualização
+                    response = json.loads(response)
+
+                except TimeoutError as error:
+                    logger.error(f"Não foi possível se conectar ao peer {client['name']}!", error)
+
+    await asyncio.sleep(30)
+    return

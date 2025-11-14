@@ -1,4 +1,5 @@
 import asyncio
+import json
 from logger import logger
 ####    Roteamento das mensagens (PUB, SUB, SEND)    ####
 
@@ -9,7 +10,7 @@ from logger import logger
 
 # 2. Detalhes de implementação
 #   a) PONG a cada 30s
-#   b) Desconexão se 3s sem um PONG de resposta
+#   b) Desconexão se 30s sem um PONG de resposta
 #   c) ttl das mensagens fixo em 1, com mensagem de erro caso contrário
 #   d) Tamanho das mensagens fixo em 32kb, com mensagem de erro caso contrário
 
@@ -24,22 +25,8 @@ from logger import logger
 #       - Todo peer deve guardar, sem repetição, os msg_ids já recebidos (evitar duplicatas)
 
 async def sendMessage(destiny, message, client):
-        logger.warning("Formato de mensagem inválido! Digite '/help' para ver o uso correto.")
-
-async def checkMessages(client):
-    for msg in client.messages:
-        ''''''
-    return
+    logger.warning("Formato de mensagem inválido! Digite '/help' para ver o uso correto.")
 
 async def pubMessage(mode, destiny, client):
     return
 
-async def pingPeers(client):
-
-    # para cada entrada na lista de peers, envia um ping caso o peer esteja disponível
-    for peer in client.peersConnected:
-        if peer["status"] == "CONNECTED":
-            jsonString = {}
-
-    await asyncio.sleep(30)
-    return
