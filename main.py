@@ -57,13 +57,13 @@ async def clientLoop(client):
 
     # manda mensagens de HELLO para os clientes novos (EM ESPERA)
     for peer in client.peersConnected:
-        reader, writer = await asyncio.open_connection(peer["address"], peer["port"])
-        if peer["status"] == "WAITING":
-            await sendHello(peer, reader, writer)
+        reader, writer = await asyncio.open_connection(client.peersConnected[peer]["address"], client.peersConnected[peer]["port"])
+        if client.peersConnected[peer]["status"] == "WAITING":
+            await sendHello(client, reader, writer, peer)
             asyncio.create_task(listenToPeer(client, reader, peer, writer))
 
     # faz o PING para todos os clientes disponíveis (~PERDIDOS) na lista de peers do cliente
-        elif peer["status"] == "CONNECTED":
+        elif client.peersConnected[peer]["status"] == "CONNECTED":
             await pingPeers(client, reader, writer)
 
 async def commandRedirection(client):

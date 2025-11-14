@@ -84,7 +84,7 @@ async def discoverPeers(receiver):
     # verifica se é um discover de namespace ou total
     if len(receiver) > 0:
         # cria a mensagem apropriada
-        jsonString = f'{{"type" : "DISCOVER", "namespace" : {receiver[0]}}}' + '\n'
+        jsonString = {"type" : "DISCOVER", "namespace" : receiver[0]}
         message = json.dumps(jsonString)
         
         # le os parametros do servidor pelo arquivo 'configs.json' e abre a conexão
@@ -93,12 +93,12 @@ async def discoverPeers(receiver):
         reader, writer = await asyncio.open_connection(configs["server_address"], configs["server_port"])
 
         # manda a mensagem de register e espera pela limpeza de buffer
-        writer.write(message.encode('UTF-8'))
+        writer.write(message.encode('UTF-8') + b'\n')
         await writer.drain()
         
     else:
         # cria a mensagem apropriada
-        jsonString = '{"type" : "DISCOVER"}' + '\n'
+        jsonString = {"type" : "DISCOVER"}
         message = json.dumps(jsonString)
         
         # le os parametros do servidor pelo arquivo 'config.json' e abre a conexão
@@ -107,13 +107,13 @@ async def discoverPeers(receiver):
         reader, writer = await asyncio.open_connection(configs["server_address"], configs["server_port"])
 
         # manda a mensagem de register e espera pela limpeza de buffer
-        writer.write(message.encode('UTF-8'))
+        writer.write(message.encode('UTF-8') + b'\n')
         await writer.drain()
 
     
     # espera o retorno por 10 segundos
     try:
-        response = await asyncio.wait_for(reader.read(32000), timeout=10)
+        response = await asyncio.wait_for(reader.readline(), timeout=10)
 
         # decodifica a mensagem
         responseMsg = response.decode('UTF-8')

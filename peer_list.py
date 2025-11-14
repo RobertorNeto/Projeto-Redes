@@ -14,7 +14,7 @@ async def updatePeerList(client, peerList):
             clientList[id]["status"] = client.peersConnected[id]["status"]
 
         # inicializa um timer = 0, na iteração 0 para o contador de backoff no caso de reconexão
-        client.backoffTimer[id] = tuple(0,0)
+        client.backoffTimer[id] = [0,0]
     
     # atualiza a lista do cliente
     client.peersConnected = clientList

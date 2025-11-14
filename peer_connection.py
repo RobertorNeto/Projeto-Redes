@@ -23,32 +23,32 @@ import uuid
 #       - responder com BYE_OK
 #       - Encerrar a conexão e liberar os recursos
 
-async def sendHello(client, reader, writer):
+async def sendHello(client, reader, writer, peer):
 
-    # carrega as informações de 'configs.json'
-    with open("oconfigs.json", "r") as configsFile:
+    # carrega as informações de 'config.json'
+    with open("config.json", "r") as configsFile:
         configs = json.load(configsFile)
-        jsonString = f'{{"type" : "HELLO", "peer_id" : {client}, "version" : {configs["version"]}, "features" : {configs["features"]}}}' + '\n'
-        message = json.dump(jsonString)
+        jsonString = {"type" : "HELLO", "peer_id" : f"{client.name}@{client.namespace}", "version" : configs["version"], "features" : configs["features"]}
+        message = json.dumps(jsonString)
 
-        writer.write(message.encode('UTF-8'))
+        writer.write(message.encode('UTF-8') + b'\n')
         await writer.drain()
 
         # espera o retorno por 10 segundos
         try:
-            response = await asyncio.wait_for(reader.read(32000), timeout=10)
+            response = await asyncio.wait_for(reader.readline(), timeout=10)
             responseMsg = response.decode('UTF-8')
             responseMsg = responseMsg.strip()
 
             # decodifica a mensagem e atualiza o status do cliente
             responseMsg = json.loads(responseMsg)
 
-            if responseMsg["status"] == "HELLO_OK":
-                client.peersConnected[client]["status"] = "CONNECTED"
+            if responseMsg["type"] == "HELLO_OK":
+                client.peersConnected[peer]["status"] = "CONNECTED"
 
                 # adiciona o peer conectado aos inbounds caso faça contato
                 if responseMsg["peer_id"] not in client.inbound:
-                    client.outbound.insert(responseMsg["peer_id"])  
+                    client.outbound.add(responseMsg["peer_id"])  
 
         except TimeoutError as error:
             logger.error(f"Não foi possível se conectar ao peer {client['name']}!", error)
@@ -61,15 +61,15 @@ async def sendHello(client, reader, writer):
 async def sendHelloOk(client, reader, writer):
     
     # carrega as informações de 'configs.json'
-    with open("oconfigs.json", "r") as configsFile:
+    with open("config.json", "r") as configsFile:
         configs = json.load(configsFile)
     
     # prepara a mensagem json
-    jsonString = f'{{"type" : "HELLO_OK", "peer_id" : {client}, "version" : {configs["version"]}, "features" : {configs["features"]}}}' + '\n'
+    jsonString = {"type" : "HELLO_OK", "peer_id" : client, "version" : configs["version"], "features" : configs["features"]}
     message = json.dumps(jsonString)
 
     # abre a conexão e escreve a mensagem
-    writer.write(message.encode('UTF-8'))
+    writer.write(message.encode('UTF-8') + b'\n')
     await writer.drain()
 
 async def listenToPeer(client, reader, peer_id, writer):
@@ -88,7 +88,7 @@ async def listenToPeer(client, reader, peer_id, writer):
             if (msg["type"] == "HELLO"):
                 sendHelloOk(peer_id, reader, writer)
                 if msg["peer_id"] not in client.outbound:
-                    client.inbound.insert(msg["peer_id"])
+                    client.inbound.add(msg["peer_id"])
             
     except asyncio.CancelledError as error:
         logger.error(f"Task de {peer_id} cancelada.", error)
@@ -102,12 +102,12 @@ async def pingPeers(client, reader, writer):
             # ve se o emissor da mensagem requer um PING (outbound) ou PONG (inbound)
             if peer in client.outbound:
                 currentTime = time.time()
-                json_string = f'{{"type" : "PING", "msg_id" : {str(uuid.UUID)}, "timestamp" : {currentTime}, "ttl" : 1}}' + '\n'
+                json_string = {"type" : "PING", "msg_id" : {str(uuid.UUID)}, "timestamp" : {currentTime}, "ttl" : 1}
                 message = json.dumps(json_string)
-                message.encode('UTF-8')
+                message = message.encode('UTF-8') + b'\n'
 
                 try:
-                    response = await asyncio.wait_for(reader.read(32000), timeout=10)
+                    response = await asyncio.wait_for(reader.readline(), timeout=10)
                     response = response.decode('UTF-8')
                     response = response.strip()
 
