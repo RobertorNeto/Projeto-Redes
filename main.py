@@ -57,6 +57,8 @@ async def clientLoop(client):
 
     # manda mensagens de HELLO para os clientes novos (EM ESPERA)
     for peer in client.peersConnected:
+        if peer == f"{client.name}@{client.namespace}":
+            continue
         reader, writer = await asyncio.open_connection(client.peersConnected[peer]["address"], client.peersConnected[peer]["port"])
         if client.peersConnected[peer]["status"] == "WAITING":
             await sendHello(client, reader, writer, peer)
