@@ -36,7 +36,7 @@ async def main():
         client = Client(configs["name"], configs["port"], configs["namespace"])
     
     # tenta fazer a conexão inicial do cliente com o rendezvous
-    await registerPeer(f"{client.name}@{client.namespace}", client.port)
+    await registerPeer(client.name, client.namespace, client.port)
 
     # chama a tela inicial de comandos
     await initialScreen()

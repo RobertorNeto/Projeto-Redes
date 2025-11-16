@@ -3,11 +3,11 @@ import asyncio
 import logger
 ####    Abstração para REGISTER, UNREGISTER e DISCOVER  ####
 
-async def registerPeer(peer, port):
+async def registerPeer(peerName, peerNamespace, port):
     
     # cria a mensagem no formato REGISTER e a converte para objeto json
-    jsonString = f'{{"type" : "REGISTER", "name" : {peer}, "port" : {port}, "ttl" : 7200}}' + '\n'
-    message = json.dumps(jsonString)
+    jsonString = {"type" : "REGISTER", "namespace" : peerNamespace, "name" : peerName, "port" : port, "ttl" : 7200}
+    message = json.dumps(jsonString) + '\n'
 
     # le os parametros do servidor pelo arquivo 'configs.json' e abre a conexão
     with open("config.json", "r") as configFile:
