@@ -1,47 +1,45 @@
-####    Registro de logs / erros    ####
-
-# 1. Diagnóstico / Estatísticas
-#   Logs obrigatórios: conexões estabelecidas, mensagens enviadas/recebidas, erros.  
-
-# 2. Níveis de Log
-#   a) Informações Gerais -> logger.info(...)
-#       - `client_started`
-#       - `client_stopped`
-#       - `peer_connected`
-#       - `peer_disconnected`
-#       - `message_sent`
-#       - `message_received`
-
-
-#   b) Sobre Tratamento de erros -> logger.error(...)
-#       - `bad_format`
-#       - `p2p_unknown_command`
-#       - `internal_error`
-#       - `ack_timeout`
-#       - `message_too_large`
-
 import logging
 import os
 from datetime import datetime
 
 LOG_DIR = "logs"
-LOG_FILE = os.path.join(LOG_DIR, f"app_{datetime.now().strftime('%Y%m%d')}.log")
+TODAY = datetime.now().strftime("%Y%m%d")
+
+# pastas por nível
+LOG_PATHS = {
+    "INFO": os.path.join(LOG_DIR, "info"),
+    "ERROR": os.path.join(LOG_DIR, "error"),
+    "DEBUG": os.path.join(LOG_DIR, "debug"),
+    "WARNING": os.path.join(LOG_DIR, "warning"),
+}
 
 def setupLogger():
-    """Inicializa e configura o logger principal."""
-    if not os.path.exists(LOG_DIR):
-        os.makedirs(LOG_DIR)
+    for path in LOG_PATHS.values():
+        os.makedirs(path, exist_ok=True)
 
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        handlers=[
-            logging.FileHandler(LOG_FILE, encoding="utf-8"),
-            logging.StreamHandler()
-        ]
-    )
+    logger = logging.getLogger("app")
+    logger.setLevel(logging.DEBUG)
 
-    logging.info("Logger inicializado.")
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
+    console = logging.StreamHandler()
+    console.setLevel(logging.DEBUG)
+    console.setFormatter(formatter)
+
+    # cria handlers separados por nível
+    for level, path in LOG_PATHS.items():
+        handler = logging.FileHandler(
+            os.path.join(path, f"app_{TODAY}.log"),
+            encoding="utf-8"
+        )
+        handler.setLevel(getattr(logging, level))
+        handler.addFilter(lambda record, lvl=level: record.levelname == lvl)
+
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+    logger.addHandler(console)
+    logger.info("Logger inicializado.")
 
 logger = logging.getLogger("app")
 
