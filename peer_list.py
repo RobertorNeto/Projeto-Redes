@@ -5,6 +5,9 @@ async def updatePeerList(client, peerList):
 
     for peer in peerList:
 
+        if peer["name"] == client.name and peer["namespace"] == client.namespace:
+            continue
+
         # primeiro copia as entradas da lista no rendezvous
         id = f"{peer["name"]}@{peer["namespace"]}"
         clientList[id] = {"address" : peer["ip"], "port" : peer["port"] ,"status" : "WAITING"}

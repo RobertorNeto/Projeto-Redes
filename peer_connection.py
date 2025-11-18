@@ -79,12 +79,15 @@ async def sendHelloOk(client, reader, writer):
 async def listenToPeer(client, reader, peer_id, writer):
     
     # implementa a escuta por mensagens vindas de cada peer
-    try:
         while True:
             data = await reader.readline()
-            msg = json.loads(data.decode())
+            msg = (data.decode())
             msg = msg.strip()
 
+            if msg == '':
+                logger.warning(f"Resposta vazia do peer {peer_id}!")
+                return
+            
             msg = json.loads(msg)
             print(f"[{peer_id}] Mensagem recebida:", msg)
             
@@ -94,8 +97,6 @@ async def listenToPeer(client, reader, peer_id, writer):
                 if msg["peer_id"] not in client.outbound:
                     client.inbound.add(msg["peer_id"])
             
-    except asyncio.CancelledError as error:
-        logger.error(f"Task de {peer_id} cancelada.", error)
 
 async def pingPeers(client, reader, writer):
 
