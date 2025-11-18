@@ -29,6 +29,7 @@ class Client:
 
 
 async def main():
+    setupLogger()
 
     # Abre o arquivo 'configs.json' para carregamento dos parâmetros e criação do cliente
     with open("config.json", "r") as config_file:

@@ -1,5 +1,5 @@
 import asyncio
-from asyncio.log import logger
+from logger import logger
 import json
 import time
 import uuid

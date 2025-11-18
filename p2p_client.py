@@ -1,6 +1,6 @@
 import json
 import asyncio
-import logger
+from logger import logger
 ####    Abstração para REGISTER, UNREGISTER e DISCOVER  ####
 
 async def registerPeer(peerName, peerNamespace, port):
