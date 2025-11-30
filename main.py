@@ -192,6 +192,7 @@ async def commandRedirection(client):
             print("Comando inválido! Digite '/help' para ver comandos disponíveis.")
             
     except EOFError:
+        await unregister(client.namespace, client.name, client.port)
         return 1
     except Exception as e:
         loggerError("Erro processando comando", e)
