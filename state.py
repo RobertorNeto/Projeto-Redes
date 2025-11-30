@@ -1,23 +1,18 @@
 import asyncio
 import time
-from logger import * # Importando o logger para ver os erros
+from logger import *
 
 MAX_RTT_HISTORY = 50
 
 async def showPeers(arg, client):
-    """
-    Mostra peers conectados agrupados por namespace.
-    """
     peers = {}
 
     if not hasattr(client, "peersConnected") or not client.peersConnected:
         print("Nenhuma informação de peers disponível.")
         return
-
-    # Se arg for '*' ou vazio, lista todos
     target_ns = None
     if arg and arg not in ["*", "all"]:
-        target_ns = arg.lstrip("#") # Aceita tanto "UNB" quanto "#UNB"
+        target_ns = arg.lstrip("#")
 
     found_any = False
     
@@ -25,7 +20,6 @@ async def showPeers(arg, client):
         try:
             name, namespace = peer_id.split("@", 1)
             
-            # Filtro por namespace
             if target_ns and namespace != target_ns:
                 continue
                 
@@ -69,11 +63,6 @@ async def showConns(client):
 
 
 async def updateRttTable(rtt_ms, peerPair, client):
-    """
-    Atualiza a tabela de RTTs.
-    Espera peerPair como tupla: (meu_id, outro_id)
-    """
-    # 1. Validação de Entrada
     if not isinstance(peerPair, (list, tuple)) or len(peerPair) != 2:
         loggerWarning(f"RTT ignorado: Formato de par inválido: {peerPair}")
         return False
@@ -84,14 +73,10 @@ async def updateRttTable(rtt_ms, peerPair, client):
         loggerWarning("RTT ignorado: IDs de peer vazios.")
         return False
 
-    # 2. Criação da Chave Canônica (Ordem alfabética para A<->B ser igual a B<->A)
-    # Isso é útil para não duplicar entradas na tabela visual
     key = tuple(sorted([a, b]))
 
-    # 3. Gestão do Lock
     lock = getattr(client, "rtt_lock", None)
     if lock is None:
-        # Fallback de segurança
         client.rtt_lock = asyncio.Lock()
         lock = client.rtt_lock
 
@@ -101,7 +86,6 @@ async def updateRttTable(rtt_ms, peerPair, client):
             client.rtt_table = {}
             table = client.rtt_table
 
-        # Inicializa entrada se não existir
         if key not in table:
             table[key] = {
                 "history": [],
@@ -115,10 +99,8 @@ async def updateRttTable(rtt_ms, peerPair, client):
         entry = table[key]
         now = time.time()
 
-        # 4. Atualização Estatística
         try:
             val = float(rtt_ms)
-            # Filtro de sanidade (evita RTT negativo ou absurdo)
             if val < 0: val = 0.0
         except ValueError:
             loggerError(f"Valor de RTT inválido: {rtt_ms}")
@@ -126,26 +108,18 @@ async def updateRttTable(rtt_ms, peerPair, client):
 
         entry["history"].append(val)
         
-        # Mantém apenas os últimos N registros
         if len(entry["history"]) > MAX_RTT_HISTORY:
             entry["history"].pop(0)
 
-        # Recalcula estatísticas
         entry["count"] = len(entry["history"])
         entry["avg"] = sum(entry["history"]) / entry["count"]
         entry["min"] = min(entry["history"])
         entry["max"] = max(entry["history"])
         entry["last_seen"] = now
-        
-        # loggerDebug(f"RTT atualizado para {key}: {val:.2f}ms") # Descomente para debug intenso
-
     return True
 
 
 async def showRtt(client):
-    """
-    Imprime a tabela de RTTs.
-    """
     table = getattr(client, "rtt_table", None)
     
     if not table:
@@ -153,7 +127,6 @@ async def showRtt(client):
         print("Certifique-se de estar conectado a outros peers e aguarde alguns segundos.\n")
         return
 
-    # Fazemos uma cópia rasa para liberar o lock rapidamente enquanto imprimimos
     lock = getattr(client, "rtt_lock", asyncio.Lock())
     async with lock:
         snapshot = {k: v.copy() for k, v in table.items()}
@@ -170,7 +143,6 @@ async def showRtt(client):
         peer_a, peer_b = key
         pair_str = f"{peer_a} <-> {peer_b}"
         
-        # Formata para caber na coluna
         if len(pair_str) > 48:
             pair_str = pair_str[:45] + "..."
 
@@ -178,7 +150,6 @@ async def showRtt(client):
         mn = f"{v['min']:.2f}ms"
         mx = f"{v['max']:.2f}ms"
         
-        # Formata data
         last_seen = time.strftime("%H:%M:%S", time.localtime(v['last_seen']))
         
         print(f"{pair_str:<50} | {avg:<10} | {mn:<10} | {mx:<10} | {last_seen}")
