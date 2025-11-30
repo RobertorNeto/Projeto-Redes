@@ -1,3 +1,4 @@
+import socket
 from logger import *
 from cli import *
 from message_router import *
@@ -15,6 +16,54 @@ async def main():
     with open("config.json", "r") as config_file:
         configs = json.load(config_file)
         client = Client(configs["name"], configs["port"], configs["namespace"])
+
+    # ==============================================================================
+    # LÓGICA PARA TESTE LOCAL (Loopback)
+    # ==============================================================================
+    
+    # 1. Cria um socket temporário apenas para descobrir uma porta livre no SO
+    temp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    temp_socket.bind(('localhost', 0)) # bind na porta 0 força o SO a escolher uma
+    _, random_port = temp_socket.getsockname()
+    temp_socket.close() # Fecha o socket para que o seu Client possa usar essa porta
+    
+    logger.info(f"[TESTE LOCAL] Porta aleatória selecionada: {random_port}")
+
+    # 2. Modifica o NOME para ser único (ex: roberto_54321)
+    # Isso impede que um terminal sobrescreva o outro no servidor
+    my_peer_name = f"{configs['name']}_{random_port}"
+    
+    # 3. Usa a porta sorteada em vez da porta do arquivo
+    my_port = random_port
+    
+    # ==============================================================================
+
+    # Cria o cliente usando os DADOS DINÂMICOS, não os do json fixo
+    client = Client(my_peer_name, my_port, configs["namespace"])
+
+    async def handle_connection(reader, writer):
+        # 1. Pega o endereço de quem conectou (IP, Porta)
+        addr = writer.get_extra_info('peername')
+        logger.info(f"Conexão recebida de {addr}")
+
+        # 2. Como não sabemos quem é o peer ainda, usamos um nome provisório
+        # O ideal seria esperar uma mensagem "HELLO" aqui para saber o nome real
+        peer_name_provisorio = f"desconhecido_{addr[1]}"
+
+        # 3. Chama a função que já existe no seu projeto para processar as mensagens
+        # O 'client' vem do escopo do main()
+        # O 'peer_name_provisorio' é usado até descobrirmos o nome real
+        try:
+            await listenToPeer(client, reader, peer_name_provisorio, writer)
+        except Exception as e:
+            logger.error(f"Erro na conexão com {addr}: {e}")
+
+    server = await asyncio.start_server(handle_connection, '0.0.0.0', client.port)
+    
+    logger.info(f"Servidor TCP escutando em 0.0.0.0:{client.port}")
+    
+    # Deixa o servidor rodando em background
+    asyncio.create_task(server.serve_forever())
     
     # tenta fazer a conexão inicial do cliente com o rendezvous
     await registerPeer(client.name, client.namespace, client.port)

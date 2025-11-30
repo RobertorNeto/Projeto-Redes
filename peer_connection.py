@@ -89,9 +89,20 @@ async def listenToPeer(client: Client, reader, peer_id: str, writer):
             
             # responde ao HELLO com um HELLO_OK e adiciona o peer à lista de inbounds do cliente
             if (msg["type"] == "HELLO"):
+                sender_id = msg["peer_id"]
                 await sendHelloOk(peer_id, reader, writer)
-                if msg["peer_id"] not in client.outbound:
-                    client.inbound.add(msg["peer_id"])
+                if peer_id != sender_id:
+                    logger.info(f"Identificando conexão: {peer_id} foi identificado como {sender_id}")
+                    addr = writer.get_extra_info('peername')
+                    client.peersConnected[sender_id] = {
+                        "writer": writer,
+                        "status": "CONNECTED",
+                        "address": addr[0],
+                        "port": addr[1] # Porta efêmera da conexão, mas serve para registro
+                    }
+                    peer_id = sender_id
+                    if sender_id not in client.outbound:
+                        client.inbound.add(msg["peer_id"])
                     
             elif msg["type"] == "SEND":
                 print(f"\n[DM de {msg['src']}]: {msg['payload']}")

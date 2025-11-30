@@ -4,7 +4,7 @@
     "namespace" : "UNB",
     "ping_timer" : 30,
     "timeout_timer" : 50,
-    "server_address" : "45.171.101.167",
+    "server_address" : "127.0.0.1",
     "server_port" : 8080,
     "version" : 1.0,
     "features" : ["ack", "metrics", "log"],
