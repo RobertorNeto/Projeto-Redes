@@ -1,7 +1,7 @@
 import asyncio
 import json
 import uuid
-from logger import logger
+from logger import *
 from client import Client
 import json
 import uuid
@@ -56,7 +56,7 @@ async def sendMessage(target_peer_id, message, client : Client):
         writer = peer_data["writer"]
         writer.write((json.dumps(payload) + '\n').encode('UTF-8'))
         await writer.drain()
-        logger.info(f"Mensagem enviada para {target_peer_id}: {message}")
+        loggerInfo(f"Mensagem enviada para {target_peer_id}: {message}")
 
         # Lógica de espera pelo ACK
         if require_ack:
@@ -69,7 +69,7 @@ async def sendMessage(target_peer_id, message, client : Client):
                 await asyncio.wait_for(ack_future, timeout=5.0)
                 print(f"✓ ACK recebido de {target_peer_id}")
             except asyncio.TimeoutError:
-                logger.warning(f"Timeout: Não recebeu ACK de {target_peer_id} para msg {msg_id}")
+                loggerWarning(f"Timeout: Não recebeu ACK de {target_peer_id} para msg {msg_id}")
                 print(f"⚠ Timeout esperando confirmação de {target_peer_id}")
             finally:
                 # Limpa a pendência
@@ -77,7 +77,7 @@ async def sendMessage(target_peer_id, message, client : Client):
                     del client.pending_acks[msg_id]
 
     except Exception as e:
-        logger.error(f"Falha ao enviar mensagem para {target_peer_id}", exception=e)
+        loggerError(f"Falha ao enviar mensagem para {target_peer_id}", exception=e)
 
 async def pubMessage(destination, message_text, client: Client):
     """
@@ -126,7 +126,7 @@ async def pubMessage(destination, message_text, client: Client):
             
             # Se o peer caiu durante o envio, capturamos aqui para não travar o loop
             except (ConnectionResetError, BrokenPipeError):
-                logger.warning(f"Não foi possível enviar PUB para {peer_id}: Conexão perdida.")
+                loggerWarning(f"Não foi possível enviar PUB para {peer_id}: Conexão perdida.")
                 # Opcional: Marcar como perdido imediatamente
                 if peer_id in client.peersConnected:
                     client.peersConnected[peer_id]["status"] = "LOST"
@@ -134,7 +134,7 @@ async def pubMessage(destination, message_text, client: Client):
             # Erros genéricos de código ou lógica
             except Exception as e:
                 # CORREÇÃO DO BUG: O argumento correto é exc_info=True
-                logger.error(f"Erro inesperado ao publicar para {peer_id}: {e}", exc_info=True)
+                loggerError(f"Erro inesperado ao publicar para {peer_id}", e)
 
     print(f"Mensagem publicada para {count} peers.")
 
