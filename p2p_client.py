@@ -1,6 +1,6 @@
 import json
 import asyncio
-from logger import logger
+from logger import *
 ####    Abstração para REGISTER, UNREGISTER e DISCOVER  ####
 
 async def registerPeer(peerName, peerNamespace, port):
@@ -34,7 +34,7 @@ async def registerPeer(peerName, peerNamespace, port):
             return False
 
     except TimeoutError as error:
-        logger.error("Não foi possível se conectar ao servidor!", error)
+        loggerError("Não foi possível se conectar ao servidor!", error)
 
     # fecha a conexão e espera o buffer
     writer.close()
@@ -67,7 +67,7 @@ async def unregister(namespace, peer, port):
         responseJson = json.loads(responseMsg)
         return responseJson.get("status") == "OK"
     except TimeoutError as error:
-        logger.error("Timeout ao tentar UNREGISTER no servidor", error)
+        loggerError("Timeout ao tentar UNREGISTER no servidor", error)
         return False
     finally:
         writer.close()
@@ -118,13 +118,13 @@ async def discoverPeers(receiver):
         responseMsg = json.loads(responseMsg)
 
         if responseMsg["status"] != "OK":
-            logger.error("Não foi possível se conectar ao servidor!")
+            loggerError("Não foi possível se conectar ao servidor!")
             return None
 
         return responseMsg["peers"]
     
     except TimeoutError as error:
-            logger.error("Não foi possível se conectar ao servidor!", error)
+            loggerError("Não foi possível se conectar ao servidor!", error)
             
     # fecha a conexão e espera o buffer
     writer.close()

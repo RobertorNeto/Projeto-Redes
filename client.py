@@ -1,3 +1,5 @@
+import asyncio
+
 class Client:
 
     def __init__(self, name, port, namespace):
@@ -9,6 +11,9 @@ class Client:
         self.inbound = set()      # peers que iniciaram conexão conosco
         self.outbound = set()     # peers que iniciamos conexão
         self.backoffTimer = {}    # peer_id -> [tentativas, proximo_delay]
+        self.rtt_table = {}
+        self.rtt_lock = asyncio.Lock()
+        self.ping_timestamps = {}  # Níveis de log habilitados
 
     def removePeerPing(self, peer_id: str):
         """Marca peer como perdido após falha de PING."""
