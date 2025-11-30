@@ -170,11 +170,13 @@ async def commandRedirection(client):
         cmd = commands[0].lower() # Normaliza para minúsculo
 
         if cmd == "/peers":
+            clearOSScreen()
             # Se não houver argumento, assume '*' (todos)
             arg = commands[1] if len(commands) > 1 else '*'
             await showPeers(arg, client)
 
         elif cmd == "/msg":
+            clearOSScreen()
             if len(commands) < 3:
                 print("Uso: /msg <peer_id> <mensagem>")
             else:
@@ -183,6 +185,7 @@ async def commandRedirection(client):
                 await sendMessage(target, msg_content, client)
 
         elif cmd == "/pub":
+            clearOSScreen()
             if len(commands) < 3:
                 print("Uso: /pub <* | #namespace> <mensagem>")
             else:
@@ -191,32 +194,45 @@ async def commandRedirection(client):
                 await pubMessage(target, msg_content, client)
 
         elif cmd == "/conn":
+            clearOSScreen()
             await showConns(client)
             
         elif cmd == "/logon":
-            level = commands[1].upper()
-            if level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
-                print("Nível de log inválido! Use: DEBUG, INFO, WARNING, ERROR, CRITICAL")
+            clearOSScreen()
+            if len(commands) < 2:
+                print("Uso: /logon <nivel>")
             else:
-                addLevel(level)
+                level = commands[1].upper()
+                if level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
+                    print("Nível de log inválido! Use: DEBUG, INFO, WARNING, ERROR, CRITICAL")
+                else:
+                    addLevel(level)
 
         elif cmd == "/logoff":
-            level = commands[1].upper()
-            if level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
-                print("Nível de log inválido! Use: DEBUG, INFO, WARNING, ERROR, CRITICAL")
+            clearOSScreen()
+            if len(commands) < 2:
+                print("Uso: /logoff <nivel>")
             else:
-                removeLevel(level)
+                level = commands[1].upper()
+                if level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
+                    print("Nível de log inválido! Use: DEBUG, INFO, WARNING, ERROR, CRITICAL")
+                else:
+                    removeLevel(level)
 
         elif cmd == "/reconnect":
+            clearOSScreen()
             await reconnectPeers(client)
             
         elif cmd == "/rtt":
+            clearOSScreen()
             await showRtt(client)
         elif cmd == "/quit":
+            clearOSScreen()
             await unregister(client.namespace, client.name, client.port)
             return 1
         
         elif cmd == "/help":
+            clearOSScreen()
             await initialScreen()
 
         else:

@@ -23,3 +23,7 @@ async def initialScreen():
     print("'/logoff <nivel>' : desabilitar log")
     print("'/quit' : sair do cliente")
     print("'/help' : visualizar os comandos novamente\n")
+
+def clearOSScreen():
+    import os
+    os.system('cls' if os.name == 'nt' else 'clear')
