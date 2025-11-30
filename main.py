@@ -19,11 +19,11 @@ async def main():
             configs = json.load(config_file)
             # Instancia o cliente com os dados do JSON
             client = Client(configs["name"], configs["port"], configs["namespace"]) # Atualiza o logger com a instância do cliente
-    except FileNotFoundError:
-        logger.critical("Arquivo 'config.json' não encontrado!")
+    except FileNotFoundError as e:
+        loggerError("Arquivo 'config.json' não encontrado!", e)
         return
-    except json.JSONDecodeError:
-        logger.critical("Arquivo 'config.json' mal formatado!")
+    except json.JSONDecodeError as e:
+        loggerError("Arquivo 'config.json' mal formatado!", e)
         return
 
     # 2. INICIALIZAÇÃO DO SERVIDOR (CORREÇÃO CRÍTICA)
@@ -43,7 +43,7 @@ async def main():
         asyncio.create_task(server.serve_forever())
         
     except OSError as e:
-        logger.critical(f"Falha ao abrir porta {client.port}. Verifique se já está em uso.", exc_info=True)
+        loggerError(f"Falha ao abrir porta {client.port}. Verifique se já está em uso.", e)
         return
 
     # 3. Registro no Rendezvous
@@ -119,8 +119,6 @@ async def clientLoop(client):
                 # Se estiver esperando conexão (WAITING), tenta conectar
                 if peer_data["status"] == "WAITING":
                     try:
-                        loggerInfo(f"Tentando conectar ativamente a {peer} ({peer_data['address']}:{peer_data['port']})...")
-                        
                         # Adiciona timeout para não travar
                         reader, writer = await asyncio.wait_for(
                             asyncio.open_connection(peer_data["address"], peer_data["port"]),
@@ -140,15 +138,15 @@ async def clientLoop(client):
                     except (OSError, asyncio.TimeoutError) as e:
                         # Falha na conexão (peer offline, NAT, firewall)
                         # Usar exc_info=True se quiser debug detalhado
-                        loggerWarning(f"Falha ao conectar com {peer}: {e}")
+                        loggerError(f"Falha ao conectar com {peer}", e)
                         
                         # Backoff simples ou marcar tentativa (opcional)
                         
                     except Exception as e:
-                        loggerError(f"Erro inesperado ao conectar com {peer}", exc_info=True)
+                        loggerError(f"Erro inesperado ao conectar com {peer}", e)
 
         except Exception as e:
-            loggerError("Erro crítico no loop do cliente (Discover/Connect)", exc_info=True)
+            loggerError("Erro crítico no loop do cliente (Discover/Connect)", e)
 
         # Espera antes da próxima rodada de descoberta (evita flood no servidor)
         await asyncio.sleep(5) 

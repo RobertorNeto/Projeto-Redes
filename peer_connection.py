@@ -51,7 +51,7 @@ async def sendHello(client: Client, reader, writer, peer_id: str):
             loggerError(f"Timeout: Não recebeu HELLO_OK de {peer_id}")
             
     except Exception as e:
-        loggerError(f"Erro ao enviar HELLO para {peer_id}", exc_info=True)
+        loggerError(f"Erro ao enviar HELLO para {peer_id}", e)
 
 async def sendHelloOk(peer_id: str, reader, writer):
     """
@@ -72,7 +72,7 @@ async def sendHelloOk(peer_id: str, reader, writer):
         writer.write(message.encode('UTF-8') + b'\n')
         await writer.drain()
     except Exception as e:
-        loggerError(f"Erro ao enviar HELLO_OK para {peer_id}", exc_info=True)
+        loggerError(f"Erro ao enviar HELLO_OK para {peer_id}", e)
 
 async def handle_incoming_connection(reader, writer, client: Client):
     """
@@ -119,7 +119,7 @@ async def handle_incoming_connection(reader, writer, client: Client):
         asyncio.create_task(listenToPeer(client, reader, remote_peer_id, writer))
 
     except Exception as e:
-        loggerError(f"Erro no handshake INBOUND com {addr}", exc_info=True)
+        loggerError(f"Erro no handshake INBOUND com {addr}", e)
         writer.close()
         await writer.wait_closed()
 
@@ -209,7 +209,7 @@ async def listenToPeer(client: Client, reader, peer_id: str, writer):
     except (ConnectionResetError, asyncio.IncompleteReadError):
         loggerWarning(f"Conexão perdida com {peer_id}")
     except Exception as e:
-        loggerError(f"Erro escutando peer {peer_id}", exc_info=True)
+        loggerError(f"Erro escutando peer {peer_id}", e)
     finally:
         # Limpeza básica ao sair do loop
         if peer_id in client.peersConnected:
