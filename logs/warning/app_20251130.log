@@ -1,0 +1,21 @@
+2025-11-30 12:25:30,122 [WARNING] app: Resposta vazia do peer vm_giga@CIC!
+2025-11-30 12:25:35,128 [WARNING] app: Falha ao conectar com elvis@CIC: 
+2025-11-30 12:25:40,133 [WARNING] app: Falha ao conectar com alice@CIC: 
+2025-11-30 12:25:45,142 [WARNING] app: Falha ao conectar com gus@CIC: 
+2025-11-30 12:25:50,144 [WARNING] app: Falha ao conectar com marcinoni@UnB: 
+2025-11-30 12:25:55,219 [WARNING] app: Falha ao conectar com neatzzy@CIC: 
+2025-11-30 12:26:01,211 [WARNING] app: Falha ao conectar com carlos@CIC: 
+2025-11-30 12:27:27,367 [WARNING] app: Resposta vazia do peer vm_giga@CIC!
+2025-11-30 12:30:05,884 [WARNING] app: Resposta vazia do peer vm_giga@CIC!
+2025-11-30 12:30:10,891 [WARNING] app: Falha ao conectar com elvis@CIC: 
+2025-11-30 12:30:15,904 [WARNING] app: Falha ao conectar com alice@CIC: 
+2025-11-30 12:30:20,916 [WARNING] app: Falha ao conectar com gus@CIC: 
+2025-11-30 12:30:25,921 [WARNING] app: Falha ao conectar com marcinoni@UnB: 
+2025-11-30 12:30:30,937 [WARNING] app: Falha ao conectar com neatzzy@CIC: 
+2025-11-30 12:30:35,949 [WARNING] app: Falha ao conectar com carlos@CIC: 
+2025-11-30 12:38:00,998 [WARNING] app: Falha ao conectar com elvis@CIC: 
+2025-11-30 12:38:06,005 [WARNING] app: Falha ao conectar com alice@CIC: 
+2025-11-30 12:38:11,017 [WARNING] app: Falha ao conectar com gus@CIC: 
+2025-11-30 12:38:16,027 [WARNING] app: Falha ao conectar com marcinoni@UnB: 
+2025-11-30 12:38:21,041 [WARNING] app: Falha ao conectar com neatzzy@CIC: 
+2025-11-30 12:38:23,153 [WARNING] app: Falha ao conectar com vitebas@UNB: [WinError 1225] O computador remoto recusou a conexão de rede

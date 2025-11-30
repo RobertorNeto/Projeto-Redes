@@ -11,35 +11,39 @@ import asyncio
 #       - Requisitadas com uma mensagem METRICS_REQ, cuja resposta é um METRICS com os dados
 #       - Dados sugeridos : 'rtts_ms', 'sent_count', 'recv_count', 'last_seen' (todos relativos ao emissor)
 
-async def showPeers(type, client):
+async def showPeers(arg, client):
 
     peers = {}
 
-    # caso deseje-se saber todos os peers conectados, para cada cliente da lista, 
-    # pega o id e separa em um dict, onde as chaves são os namespaces
-    if type == "*":
-        for peer in client.peersConnected:
-            id = (peer.split('@'))
-            name, namespace = id[0], id[1]
-            if namespace not in peers:
-                peers[namespace] = [name]
-            else:
-                peers[namespace].append(name)
-
-    # caso contrário, só pega os peers do namespace solicitado
+    # caso deseje mostrar todos os peers
+    if arg == "*":
+        for peer_id in client.peersConnected:  # peer_id é a chave "nome@namespace"
+            parts = peer_id.split('@')
+            if len(parts) != 2:
+                continue  # ignora ids malformados
+            name, namespace = parts
+            peers.setdefault(namespace, []).append(name)
     else:
+        # espera formato '#namespace'
+        if arg.startswith('#'):
+            namespace = arg[1:]
+        else:
+            # se o usuário não colocar '#', assume que todo o argumento é o namespace
+            namespace = arg
         peers[namespace] = []
-        for peer in client.peersConnected:
-            id = str(peer.split('@'))
-            name, namespace = id[0], id[1]
-            if namespace == type[1:]:
+        for peer_id in client.peersConnected:
+            parts = peer_id.split('@')
+            if len(parts) != 2:
+                continue
+            name, ns = parts
+            if ns == namespace:
                 peers[namespace].append(name)
 
     # imprime os peers encontrados
-    for nSpace in peers:
-        print(f"# {nSpace} ({len(peers[nSpace])})")
-        for p in peers[nSpace]:
-            print(f"\t- {p}")
+    for ns in peers:
+        print(f"# {ns} ({len(peers[ns])})")
+        for name in peers[ns]:
+            print(f"\t- {name}")
     return
 
 async def showConns(client):

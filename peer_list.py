@@ -9,15 +9,15 @@ async def updatePeerList(client, peerList):
             continue
 
         # primeiro copia as entradas da lista no rendezvous
-        id = f"{peer["name"]}@{peer["namespace"]}"
-        clientList[id] = {"address" : peer["ip"], "port" : peer["port"] ,"status" : "WAITING"}
+        peer_id = f"{peer['name']}@{peer['namespace']}"
+        clientList[peer_id] = {"address": peer["ip"], "port": peer["port"], "status": "WAITING"}
 
         # caso o status do cliente encontrado seja distinto do que está no rendezvous, altera-o
-        if id in client.peersConnected:
-            clientList[id]["status"] = client.peersConnected[id]["status"]
+        if peer_id in client.peersConnected:
+            clientList[peer_id]["status"] = client.peersConnected[peer_id]["status"]
 
         # inicializa um timer = 0, na iteração 0 para o contador de backoff no caso de reconexão
-        client.backoffTimer[id] = [0,0]
-    
+        client.backoffTimer[peer_id] = [0, 0]
+
     # atualiza a lista do cliente
     client.peersConnected = clientList

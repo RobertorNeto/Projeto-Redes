@@ -6,27 +6,7 @@ from p2p_client import *
 from peer_list import *
 from state import *
 import asyncio
-
-# classe padrão para tratar do cliente 
-class Client:
-
-    def __init__(self, name, port, namespace):
-        self.name = name
-        self.port = port
-        self.namespace = namespace
-        self.peersConnected = {}
-        self.inbound = set()
-        self.outbound = set()
-        self.backoffTimer = {}
-
-    # remove um peer da lista do cliente quando da conexão perdida no PING
-    def removePeerPing(id, self):
-        self.peersConnected[id]["status"] = "LOST"
-    
-    # remove um peer da lista do cliente quando do BYE
-    def removePeer(id, self):
-        self.peersConnected[id]["status"] = "CLOSED"
-
+from client import Client
 
 async def main():
     setupLogger()
@@ -54,20 +34,53 @@ async def clientLoop(client):
 
     # faz o discover rotineiro dos peers conectados no rendezvous e atualiza a lista
     connectedPeers = await discoverPeers([])
-    await updatePeerList(client, connectedPeers)
+    if connectedPeers:
+        await updatePeerList(client, connectedPeers)
 
-    # manda mensagens de HELLO para os clientes novos (EM ESPERA)
-    for peer in client.peersConnected:
+    # itera sobre a lista de peers
+    # DICA: Use list(client.peersConnected) para evitar erro de mudança de tamanho do dict durante iteração
+    for peer in list(client.peersConnected): 
         if peer == f"{client.name}@{client.namespace}":
             continue
-        reader, writer = await asyncio.open_connection(client.peersConnected[peer]["address"], client.peersConnected[peer]["port"])
-        if client.peersConnected[peer]["status"] == "WAITING":
-            await sendHello(client, reader, writer, peer)
-            asyncio.create_task(listenToPeer(client, reader, peer, writer))
+        
+        peer_data = client.peersConnected[peer]
 
-    # faz o PING para todos os clientes disponíveis (~PERDIDOS) na lista de peers do cliente
-        elif client.peersConnected[peer]["status"] == "CONNECTED":
-            await pingPeers(client, reader, writer)
+        # Se já estiver conectado, faz o PING
+        if peer_data["status"] == "CONNECTED":
+            # (Opcional) Você pode passar reader/writer aqui se já tiver salvo
+            # mas cuidado para não abrir conexão nova se já existe uma
+            if "writer" in peer_data:
+                await pingPeers(client, None, None) # Ajuste seus argumentos do PING conforme sua implementação
+            continue
+
+        # Se estiver esperando conexão (WAITING), tenta conectar
+        if peer_data["status"] == "WAITING":
+            try:
+                # <--- A CORREÇÃO PRINCIPAL COMEÇA AQUI --->
+                logger.info(f"Tentando conectar a {peer} ({peer_data['address']}:{peer_data['port']})...")
+                
+                # Adicione um timeout para não ficar travado para sempre no Windows
+                reader, writer = await asyncio.wait_for(
+                    asyncio.open_connection(peer_data["address"], peer_data["port"]),
+                    timeout=5.0 # Timeout de 5 segundos
+                )
+
+                # Salva o writer
+                client.peersConnected[peer]["writer"] = writer
+                
+                # Inicia o Handshake
+                await sendHello(client, reader, writer, peer)
+                
+                # Cria a task para escutar esse peer
+                asyncio.create_task(listenToPeer(client, reader, peer, writer))
+            
+            except (OSError, asyncio.TimeoutError) as e:
+                # Se der erro (timeout, recusado, semáforo expirou), a gente captura e não cracha o programa
+                logger.warning(f"Falha ao conectar com {peer}: {e}")
+                # Opcional: Marcar como LOST ou remover da lista
+                # client.removePeerPing(peer, client) 
+            except Exception as e:
+                logger.error(f"Erro inesperado ao conectar com {peer}: {e}")
 
 async def commandRedirection(client):
 
@@ -75,13 +88,21 @@ async def commandRedirection(client):
     commands = await async_input("Enter command: ")
     commands = commands.split(" ")
     if commands[0] == "/peers":
-        await showPeers(commands[1], client)
+        # Se não houver argumento, assume '*' (todos)
+        arg = commands[1] if len(commands) > 1 else '*'
+        await showPeers(arg, client)
 
     elif commands[0] == "/msg":
-        await sendMessage(commands[1], commands[2], client)
+        if len(commands) < 3:
+            print("Uso: /msg <peer_id> <mensagem>")
+        else:
+            await sendMessage(commands[1], ' '.join(commands[2:]), client)
 
     elif commands[0] == "/pub":
-        await pubMessage(commands[1], commands[2], client)
+        if len(commands) < 3:
+            print("Uso: /pub <* | #namespace> <mensagem>")
+        else:
+            await pubMessage(commands[1], ' '.join(commands[2:]), client)
 
     elif commands[0] == "/conn":
         await showConns(client)

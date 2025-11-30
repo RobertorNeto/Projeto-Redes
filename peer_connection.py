@@ -1,8 +1,11 @@
 import asyncio
+from datetime import datetime
 from logger import logger
 import json
 import time
 import uuid
+
+from client import Client
 
 ####    Gestão da camada TCP (HELLO, BYE, PING/PONG)    ####
 
@@ -23,7 +26,7 @@ import uuid
 #       - responder com BYE_OK
 #       - Encerrar a conexão e liberar os recursos
 
-async def sendHello(client, reader, writer, peer):
+async def sendHello(client: Client, reader, writer, peer_id: str):
 
     # carrega as informações de 'config.json'
     with open("config.json", "r") as configsFile:
@@ -41,42 +44,35 @@ async def sendHello(client, reader, writer, peer):
             responseMsg = responseMsg.strip()
 
             if responseMsg == '':
-                logger.error(f"Resposta vazia do peer {peer}!")
+                logger.error(f"Resposta vazia do peer {peer_id}!")
                 return
             
             # decodifica a mensagem e atualiza o status do cliente
             responseMsg = json.loads(responseMsg)
 
             if responseMsg["type"] == "HELLO_OK":
-                client.peersConnected[peer]["status"] = "CONNECTED"
-
-                # adiciona o peer conectado aos inbounds caso faça contato
-                if responseMsg["peer_id"] not in client.inbound:
-                    client.outbound.add(responseMsg["peer_id"])  
+                client.peersConnected[peer_id]["status"] = "CONNECTED"
+                client.outbound.add(responseMsg["peer_id"])  
 
         except TimeoutError as error:
-            logger.error(f"Não foi possível se conectar ao peer {client['name']}!", error)
-            
-        # fecha a conexão e espera o buffer
-        writer.close()
-        await writer.wait_closed()
+            logger.error(f"Não foi possível completar HELLO com {peer_id}", error)
     return
 
-async def sendHelloOk(client, reader, writer):
+async def sendHelloOk(peer_id: str, reader, writer):
     
     # carrega as informações de 'configs.json'
     with open("config.json", "r") as configsFile:
         configs = json.load(configsFile)
     
     # prepara a mensagem json
-    jsonString = {"type" : "HELLO_OK", "peer_id" : client, "version" : configs["version"], "features" : configs["features"]}
+    jsonString = {"type" : "HELLO_OK", "peer_id" : peer_id, "version" : configs["version"], "features" : configs["features"]}
     message = json.dumps(jsonString)
 
     # abre a conexão e escreve a mensagem
     writer.write(message.encode('UTF-8') + b'\n')
     await writer.drain()
 
-async def listenToPeer(client, reader, peer_id, writer):
+async def listenToPeer(client: Client, reader, peer_id: str, writer):
     
     # implementa a escuta por mensagens vindas de cada peer
         while True:
@@ -93,34 +89,53 @@ async def listenToPeer(client, reader, peer_id, writer):
             
             # responde ao HELLO com um HELLO_OK e adiciona o peer à lista de inbounds do cliente
             if (msg["type"] == "HELLO"):
-                sendHelloOk(peer_id, reader, writer)
+                await sendHelloOk(peer_id, reader, writer)
                 if msg["peer_id"] not in client.outbound:
                     client.inbound.add(msg["peer_id"])
+                    
+            elif msg["type"] == "SEND":
+                print(f"\n[DM de {msg['src']}]: {msg['payload']}")
+                
+                # Se exige ACK, envia resposta
+                if msg.get("require_ack", False):
+                    ack_packet = {
+                        "type": "ACK",
+                        "msg_id": msg["msg_id"], # Repete o ID da mensagem original
+                        "timestamp": datetime.now().isoformat(),
+                        "ttl": 1
+                    }
+                    writer.write((json.dumps(ack_packet) + '\n').encode('UTF-8'))
+                    await writer.drain()
+                    logger.debug(f"ACK enviado para {msg['src']} (msg_id: {msg['msg_id']})")
+
+            # --- Tratamento de PUB (Recebendo broadcast) ---
+            elif msg["type"] == "PUB":
+                print(f"\n[PUB {msg['dst']} de {msg['src']}]: {msg['payload']}")
+
+            # --- Tratamento de ACK (Recebendo confirmação) ---
+            elif msg["type"] == "ACK":
+                ack_id = msg["msg_id"]
+                # Se estamos esperando por esse ACK, marcamos o futuro como resolvido
+                if ack_id in client.pending_acks:
+                    future = client.pending_acks[ack_id]
+                    if not future.done():
+                        future.set_result(True)
             
 
-async def pingPeers(client, reader, writer):
-
-    # para cada entrada na lista de peers, envia um ping / pong caso o peer esteja disponível
-    for peer in client.peersConnected:
-        if peer["status"] == "CONNECTED":
-
-            # ve se o emissor da mensagem requer um PING (outbound) ou PONG (inbound)
-            if peer in client.outbound:
-                currentTime = time.time()
-                json_string = {"type" : "PING", "msg_id" : {str(uuid.UUID)}, "timestamp" : {currentTime}, "ttl" : 1}
-                message = json.dumps(json_string)
-                message = message.encode('UTF-8') + b'\n'
-
-                try:
-                    response = await asyncio.wait_for(reader.readline(), timeout=10)
-                    response = response.decode('UTF-8')
-                    response = response.strip()
-
-                    # decodifica a mensagem e retorna o cálculo do RTT para atualização
-                    response = json.loads(response)
-
-                except TimeoutError as error:
-                    logger.error(f"Não foi possível se conectar ao peer {client['name']}!", error)
-
+async def pingPeers(client: Client):
+    """Rotina periódica simplificada de PING (placeholder)."""
+    for peer_id, data in client.peersConnected.items():
+        if data.get("status") == "CONNECTED" and peer_id in client.outbound and "writer" in data:
+            try:
+                packet = {
+                    "type": "PING",
+                    "msg_id": str(uuid.uuid4()),
+                    "timestamp": time.time(),
+                    "ttl": 1
+                }
+                data["writer"].write((json.dumps(packet) + '\n').encode('UTF-8'))
+                await data["writer"].drain()
+            except Exception as e:
+                logger.warning(f"Falha ao enviar PING para {peer_id}: {e}")
     await asyncio.sleep(30)
     return

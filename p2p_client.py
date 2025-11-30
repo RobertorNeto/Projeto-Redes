@@ -42,41 +42,36 @@ async def registerPeer(peerName, peerNamespace, port):
 
 
 async def unregister(namespace, peer, port):
+    # cria a mensagem no formato UNREGISTER como dict
+    json_dict = {
+        "type": "UNREGISTER",
+        "namespace": namespace,
+        "name": peer,
+        "port": port,
+        "ttl": 7200
+    }
+    message = json.dumps(json_dict) + '\n'
 
-    # cria a mensagem no formato UNREGISTER e a converte para objeto json
-    jsonString = f'{{"type" : "UNREGISTER", "namespace" : {namespace}, "name" : {peer}, "port" : {port}, "ttl" : 7200}}' + '\n'
-    message = json.dumps(jsonString)
-
-    # le os parametros do servidor pelo arquivo 'configs.json' e abre a conexão
-    with open("configs.json", "r") as configFile:
+    # lê parâmetros do servidor
+    with open("config.json", "r") as configFile:
         configs = json.load(configFile)
     reader, writer = await asyncio.open_connection(configs["server_address"], configs["server_port"])
 
-    # manda a mensagem de register e espera pela limpeza de buffer
+    # envia
     writer.write(message.encode('UTF-8'))
     await writer.drain()
 
-    # espera o retorno por 10 segundos
     try:
         response = await asyncio.wait_for(reader.read(32000), timeout=10)
-
-        # decodifica a mensagem e recebe seu status
-        responseMsg = response.decode('UTF-8')
-        responseMsg = responseMsg.strip()
-
-        responseMsg = json.loads(responseMsg)
-
-        if responseMsg["status"] == "OK":
-            return True
-        else:
-            return False
-        
+        responseMsg = response.decode('UTF-8').strip()
+        responseJson = json.loads(responseMsg)
+        return responseJson.get("status") == "OK"
     except TimeoutError as error:
-        logger.error("Não foi possível se conectar ao servidor!", error)
-
-    # fecha a conexão e espera o buffer
-    writer.close()
-    await writer.wait_closed()
+        logger.error("Timeout ao tentar UNREGISTER no servidor", error)
+        return False
+    finally:
+        writer.close()
+        await writer.wait_closed()
 
         
 async def discoverPeers(receiver):
@@ -88,7 +83,7 @@ async def discoverPeers(receiver):
         message = json.dumps(jsonString)
         
         # le os parametros do servidor pelo arquivo 'configs.json' e abre a conexão
-        with open("configs.json", "r") as configFile:
+        with open("config.json", "r") as configFile:
             configs = json.load(configFile)
         reader, writer = await asyncio.open_connection(configs["server_address"], configs["server_port"])
 
