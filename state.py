@@ -7,6 +7,7 @@ MAX_RTT_HISTORY = 50
 async def showPeers(arg, client):
     peers = {}
 
+    # verifica se há peers conhecidos
     if not hasattr(client, "peersConnected") or not client.peersConnected:
         print("Nenhuma informação de peers disponível.")
         return
@@ -17,6 +18,7 @@ async def showPeers(arg, client):
     found_any = False
     
     for peer_id, data in client.peersConnected.items():
+        # itera sobre os peers conhecidos para exibir informações (filtrando por namespace se necessário)
         try:
             name, namespace = peer_id.split("@", 1)
             
@@ -24,17 +26,21 @@ async def showPeers(arg, client):
                 continue
                 
             if namespace not in peers:
+                # cria uma lista dedicada ao namespace para mostrar os peers conectados a ele depois
                 peers[namespace] = []
             
+            # adiciona o peer à lista do seu namespace
             peers[namespace].append((name, data["status"], data["address"], data["port"]))
             found_any = True
         except ValueError:
             continue
 
     if not found_any:
+        # caso nenhum peer seja encontrado para o namespace solicitado
         print("Nenhum peer encontrado para a consulta.")
         return
 
+    # exibe os peers organizados por namespace, com status e endereço   
     print(f"\n--- Peers Conhecidos ({len(client.peersConnected)}) ---")
     for nspace, peer_list in peers.items():
         print(f"# {nspace}")
@@ -45,9 +51,7 @@ async def showPeers(arg, client):
 
 
 async def showConns(client):
-    """
-    Mostra detalhes técnicos das conexões TCP (Sockets).
-    """
+    # exibe as conexões ativas inbound e outbound
     inbound = getattr(client, "inbound", set())
     outbound = getattr(client, "outbound", set())
 
@@ -63,6 +67,7 @@ async def showConns(client):
 
 
 async def updateRttTable(rtt_ms, peerPair, client):
+    # atualiza a tabela de RTT com nova medição entre dois peers
     if not isinstance(peerPair, (list, tuple)) or len(peerPair) != 2:
         loggerWarning(f"RTT ignorado: Formato de par inválido: {peerPair}")
         return False
@@ -75,6 +80,7 @@ async def updateRttTable(rtt_ms, peerPair, client):
 
     key = tuple(sorted([a, b]))
 
+    # adquire o lock para evitar condições de corrida na tabela de RTT (conflitos de escrita)
     lock = getattr(client, "rtt_lock", None)
     if lock is None:
         client.rtt_lock = asyncio.Lock()
@@ -83,6 +89,7 @@ async def updateRttTable(rtt_ms, peerPair, client):
     async with lock:
         table = getattr(client, "rtt_table", None)
         if table is None:
+            # inicializa a tabela de RTT se ainda não existir
             client.rtt_table = {}
             table = client.rtt_table
 
@@ -109,8 +116,10 @@ async def updateRttTable(rtt_ms, peerPair, client):
         entry["history"].append(val)
         
         if len(entry["history"]) > MAX_RTT_HISTORY:
+            # mantém apenas as últimas N medições na história para evitar crescimento indefinido
             entry["history"].pop(0)
 
+        # atualiza estatísticas básicas para o par de peers
         entry["count"] = len(entry["history"])
         entry["avg"] = sum(entry["history"]) / entry["count"]
         entry["min"] = min(entry["history"])
@@ -120,6 +129,7 @@ async def updateRttTable(rtt_ms, peerPair, client):
 
 
 async def showRtt(client):
+    # exibe as estatísticas de latência (RTT) entre pares de peers
     table = getattr(client, "rtt_table", None)
     
     if not table:

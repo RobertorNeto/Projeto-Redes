@@ -11,6 +11,7 @@ from p2p_client import registerPeer
 
 async def sendHello(client: Client, reader, writer, peer_id: str):
     try:
+        # cria a mensagem HELLO em JSON e envia para o peer
         with open("config.json", "r") as configsFile:
             configs = json.load(configsFile)
             
@@ -26,6 +27,7 @@ async def sendHello(client: Client, reader, writer, peer_id: str):
         await writer.drain()
 
         try:
+            # espera a resposta HELLO_OK do peer com timeout de 10 segundos, e atualiza o status da conexão (CONNECTED e outbound)
             response = await asyncio.wait_for(reader.readline(), timeout=10)
             if not response:
                 loggerError(f"Conexão fechada por {peer_id} durante handshake.")
@@ -48,9 +50,11 @@ async def sendHello(client: Client, reader, writer, peer_id: str):
 
 async def sendHelloOk(peer_id: str, reader, writer):
     try:
+        # cria a mensagem HELLO_OK em JSON e envia para o peer, quando recebe HELLO na rotina handle_incoming_connection()
         with open("config.json", "r") as configsFile:
             configs = json.load(configsFile)
         
+        # cria a mensagem HELLO_OK em JSON e envia para o peer
         jsonString = {
             "type" : "HELLO_OK", 
             "peer_id" : peer_id, 
@@ -61,6 +65,7 @@ async def sendHelloOk(peer_id: str, reader, writer):
 
         writer.write(message.encode('UTF-8') + b'\n')
         await writer.drain()
+
     except Exception as e:
         loggerError(f"Erro ao enviar HELLO_OK para {peer_id}", e)
 
@@ -68,6 +73,7 @@ async def handle_incoming_connection(reader, writer, client: Client):
     addr = writer.get_extra_info('peername')
     
     try:
+        # rotina para tratar das tentativas de conexão INBOUND de outros peers
         data = await asyncio.wait_for(reader.readline(), timeout=10.0)
         if not data:
             writer.close()
@@ -83,6 +89,7 @@ async def handle_incoming_connection(reader, writer, client: Client):
 
         remote_peer_id = msg.get("peer_id")
         
+        # caso o peer não esteja na tabela, adiciona com status CONNECTED, caso contrário, atualiza o 'writer' e status
         if remote_peer_id not in client.peersConnected:
             client.peersConnected[remote_peer_id] = {
                 "address": addr[0],
@@ -94,8 +101,10 @@ async def handle_incoming_connection(reader, writer, client: Client):
             client.peersConnected[remote_peer_id]["writer"] = writer
             client.peersConnected[remote_peer_id]["status"] = "CONNECTED"
 
+        # adiciona o peer à lista de conexões INBOUND (recebidas)
         client.inbound.add(remote_peer_id)
 
+        # envia a mensagem HELLO_OK como resposta para finalizar a tentativa de conexão com sucesso
         await sendHelloOk(remote_peer_id, reader, writer)
         loggerInfo(f"Conexão INBOUND estabelecida com {remote_peer_id}")
         asyncio.create_task(listenToPeer(client, reader, remote_peer_id, writer))
@@ -108,6 +117,7 @@ async def handle_incoming_connection(reader, writer, client: Client):
 async def listenToPeer(client: Client, reader, peer_id: str, writer):
     try:
         while True:
+            # tenta ler mensagens do peer conectado
             data = await reader.readline()
             if not data:
                 loggerWarning(f"Conexão fechada pelo peer {peer_id}")
@@ -125,7 +135,7 @@ async def listenToPeer(client: Client, reader, peer_id: str, writer):
 
             msg_type = msg.get("type")
 
-
+            # trata os diferentes tipos de mensagens recebidas
             if msg_type == "HELLO":
                 await sendHelloOk(peer_id, reader, writer)
 
@@ -142,6 +152,7 @@ async def listenToPeer(client: Client, reader, peer_id: str, writer):
             elif msg_type == "PONG":
                 msg_id = msg.get("msg_id")
                 
+                # caso esteja recebendo um PONG, calcula o RTT e atualiza a tabela de RTTs
                 if hasattr(client, "ping_timestamps") and msg_id in client.ping_timestamps:
                     start_time = client.ping_timestamps.pop(msg_id)
                     end_time = time.time()
@@ -154,6 +165,7 @@ async def listenToPeer(client: Client, reader, peer_id: str, writer):
                     loggerDebug(f"RTT atualizado para {peer_id}: {rtt_ms:.2f}ms")
 
             elif msg_type == "SEND":
+                # no SEND, trata da emissão de ACKs e exibição da mensagem
                 print(f"\n[DM de {msg.get('src', '?')}]: {msg.get('payload', '')}")
                 
                 if msg.get("require_ack", False):
@@ -167,9 +179,11 @@ async def listenToPeer(client: Client, reader, peer_id: str, writer):
                     await writer.drain()
 
             elif msg_type == "PUB":
+                # no PUB, apenas exibe a mensagem pública
                 print(f"\n[PUB {msg.get('dst')} de {msg.get('src')}]: {msg.get('payload')}")
 
             elif msg_type == "ACK":
+                # no ACK, verifica se há uma espera por esse ACK e a completa
                 ack_id = msg.get("msg_id")
                 if ack_id in client.pending_acks:
                     future = client.pending_acks[ack_id]
@@ -186,14 +200,17 @@ async def listenToPeer(client: Client, reader, peer_id: str, writer):
 
 async def pingPeers(client: Client):
     if not hasattr(client, "ping_timestamps"):
+        # inicializa o dicionário de timestamps de ping se não existir
         client.ping_timestamps = {}
 
     for peer_id, data in list(client.peersConnected.items()):
+        # envia PING apenas para peers conectados
         if data.get("status") == "CONNECTED" and "writer" in data and data["writer"]:
             try:
                 msg_id = str(uuid.uuid4())
                 current_time = time.time()
                 
+                # registra o timestamp do ping para cálculo de RTT ao receber o PONG
                 client.ping_timestamps[msg_id] = current_time
                 
                 packet = {
@@ -213,6 +230,7 @@ async def pingPeers(client: Client):
     return
 
 async def reconnectPeers(client: Client):
+    # rotina para forçar a reconexão com todos os peers conectados (backoff exponencial)
     print("\n🔄 Iniciando protocolo de reconexão forçada...")
     loggerInfo("Usuário solicitou /reconnect.")
 
@@ -229,6 +247,7 @@ async def reconnectPeers(client: Client):
     
     for peer_id, data in list(client.peersConnected.items()):
         
+        # reseta o estado de cada peer para forçar nova conexão
         if data.get("writer"):
             try:
                 print(f"   Encerrando conexão com {peer_id}...")

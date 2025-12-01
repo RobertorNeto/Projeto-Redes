@@ -14,9 +14,11 @@ async def main():
     setupLogger()
     
     try:
+        # carrega o arquivo 'config.json', que mantém os parâmetros do cliente
         with open("config.json", "r") as config_file:
             configs = json.load(config_file)
             client = Client(configs["name"], configs["port"], configs["namespace"])
+
     except FileNotFoundError as e:
         loggerError("Arquivo 'config.json' não encontrado!", e)
         return
@@ -25,6 +27,7 @@ async def main():
         return
 
     try:
+        # inicia o servidor P2P para aceitar conexões de outros peers
         server_callback = functools.partial(handle_incoming_connection, client=client)
         
         server = await asyncio.start_server(
@@ -34,6 +37,7 @@ async def main():
         )
         loggerInfo(f"Servidor P2P iniciado. Escutando na porta {client.port}...")
         
+        # cria uma tarefa para o servidor aceitar conexões de forma assíncrona
         asyncio.create_task(server.serve_forever())
         
     except OSError as e:
@@ -41,6 +45,8 @@ async def main():
         return
 
     loggerInfo("Registrando no servidor Rendezvous...")
+
+    # tenta registrar o peer no servidor Rendezvous
     registered = await registerPeer(client.name, client.namespace, client.port)
     
     if not registered:
@@ -48,19 +54,24 @@ async def main():
     else:
         loggerInfo("Registrado com sucesso!")
 
+    # chama a tela inicial do CLI
     await initialScreen()
 
+    # roda o loop principal enquanto o usuário não digita o comando de saída
     discovery_task = asyncio.create_task(clientLoop(client))
     ans = 0
     try:
         while not ans:
+            # lida do comando do usuário de modo assíncrono
             ans = await commandRedirection(client)
+
     except KeyboardInterrupt:
         print("\nInterrupção forçada detectada.")
     finally:
         print("Saindo da rede...")
         discovery_task.cancel()
         
+        # faz a desconexão limpa do peer e fecha o cliente
         await unregister(client.namespace, client.name, client.port)
         
         server.close()
@@ -70,33 +81,37 @@ async def main():
 async def clientLoop(client):
     while True:
         try:
+            # primeiro, faz o discover de peers no servidor Rendezvous
             connectedPeers = await discoverPeers([]) 
             
             if connectedPeers:
+                # atualiza a lista de peers conhecidos
                 await updatePeerList(client, connectedPeers)
 
             for peer in list(client.peersConnected): 
                 
+                # evita tentar conectar a si mesmo, e pega o peer_id de cada peer da tabela
                 if peer == f"{client.name}@{client.namespace}":
                     continue
                 
                 peer_data = client.peersConnected[peer]
 
-                if peer_data["status"] == "CONNECTED":
-                    if "writer" in peer_data:
-                        await pingPeers(client) 
-                    continue
+                # tenta pingar os peers conectados para atualizar RTTs
+                await pingPeers(client) 
 
                 if peer_data["status"] == "WAITING":
                     try:
+                        # tenta estabelecer conexão com o peer por meio de HELLO / HELLO_OK
                         reader, writer = await asyncio.wait_for(
                             asyncio.open_connection(peer_data["address"], peer_data["port"]),
                             timeout=5.0 
                         )
 
+                        # atualiza o 'writer' na tabela de peers conectados para comunicação futura, e adiciona conexão
                         client.peersConnected[peer]["writer"] = writer
                         client.outbound.add(peer)
 
+                        # envia a mensagem HELLO para o peer e espera respostas
                         await sendHello(client, reader, writer, peer)
                         
                         asyncio.create_task(listenToPeer(client, reader, peer, writer))
@@ -115,6 +130,7 @@ async def clientLoop(client):
 
 async def commandRedirection(client):
     try:
+        # rotina assíncrona para ler o comando do usuário, fazendo o clear da tela antes (clearOSScreen)
         commands = await async_input("Digite o comando: ")
         
         if not commands.strip():
@@ -204,6 +220,7 @@ async def async_input(prompt: str = "") -> str:
     return await loop.run_in_executor(None, lambda: input(prompt))
 
 if __name__ == "__main__":
+    # inicia o loop principal do asyncio (boa prática para lidar com KeyboardInterrupt)
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

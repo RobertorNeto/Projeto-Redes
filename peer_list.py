@@ -5,6 +5,7 @@ async def updatePeerList(client, peerList):
     current_server_peers = set()
 
     for peer in peerList:
+        # atualiza ou adiciona cada peer da lista do servidor (ignorando a si mesmo)
         if peer["name"] == client.name and peer["namespace"] == client.namespace:
             continue
 
@@ -29,6 +30,7 @@ async def updatePeerList(client, peerList):
     local_peers = list(client.peersConnected.keys())
     
     for peer_id in local_peers:
+        # caso algum peer local não esteja mais no servidor, remove-o da lista local
         if peer_id not in current_server_peers:
             if client.peersConnected[peer_id]["status"] != "CONNECTED":
                 loggerDebug(f"Removendo peer obsoleto: {peer_id}")

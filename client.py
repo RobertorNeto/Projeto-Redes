@@ -1,7 +1,7 @@
 import asyncio
 
 class Client:
-
+    # definicção da classe 'Cliente' para uso no pyp2p (nome, porta, namespace, lista de peers, e métricas)
     def __init__(self, name, port, namespace):
         self.name = name
         self.port = port
@@ -15,6 +15,7 @@ class Client:
         self.rtt_lock = asyncio.Lock()
         self.ping_timestamps = {}  
 
+    # funções de atualização da lista de peers quando da desconexão
     def removePeerPing(self, peer_id: str):
         if peer_id in self.peersConnected:
             self.peersConnected[peer_id]["status"] = "LOST"

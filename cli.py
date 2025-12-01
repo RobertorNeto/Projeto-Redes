@@ -1,14 +1,6 @@
 ####    Interface, parsing de comandos  ####
 
-# 1. Implementação da Interface
-#   a) '/peers' : mostra lista dos peers ativos
-#   b) '/connect <peer_id>' : conexão direta
-#   c) '/msg @<peer> <mensagem>' : mensagem direta
-#   d) '/msg #<namespace> <mensagem>' : mensagem para o namespace
-#   e) '/msg * <mensagem>' : mensagem de broadcast
-#   f) '/watch' : habilitar log
-#   g) '/quit' : sair do cliente
-
+# printa a tela inicial com os comandos possíveis
 async def initialScreen():
     print("\nBem-vindo ao pyp2p! Veja os comandos possíveis")
     print("")

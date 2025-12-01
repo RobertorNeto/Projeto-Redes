@@ -3,10 +3,17 @@ import asyncio
 from logger import *
 
 async def registerPeer(peerName, peerNamespace, port):
-    
-    jsonString = {"type" : "REGISTER", "namespace" : peerNamespace, "name" : peerName, "port" : port, "ttl" : 7200}
+    # cria a mensagem de registro em JSON
+    jsonString = {
+        "type" : "REGISTER",
+        "namespace" : peerNamespace, 
+        "name" : peerName, 
+        "port" : port, 
+        "ttl" : 7200
+    }
     message = json.dumps(jsonString) + '\n'
 
+    # abre conexão com o servidor Rendezvous usando os parâmetros do config.json
     with open("config.json", "r") as configFile:
         configs = json.load(configFile)
     reader, writer = await asyncio.open_connection(configs["server_address"], configs["server_port"])
@@ -15,6 +22,7 @@ async def registerPeer(peerName, peerNamespace, port):
     await writer.drain()
 
     try:
+        # espera a resposta do servidor com timeout de 10 segundos e retorna o status do registro
         response = await asyncio.wait_for(reader.read(32000), timeout=10)
 
         responseMsg = response.decode('UTF-8')
@@ -35,6 +43,7 @@ async def registerPeer(peerName, peerNamespace, port):
 
 
 async def unregister(namespace, peer, port):
+    # cria a mensagem de desregistro em JSON
     json_dict = {
         "type": "UNREGISTER",
         "namespace": namespace,
@@ -44,6 +53,7 @@ async def unregister(namespace, peer, port):
     }
     message = json.dumps(json_dict) + '\n'
 
+    # abre conexão com o servidor Rendezvous usando os parâmetros do config.json
     with open("config.json", "r") as configFile:
         configs = json.load(configFile)
     reader, writer = await asyncio.open_connection(configs["server_address"], configs["server_port"])
@@ -52,6 +62,7 @@ async def unregister(namespace, peer, port):
     await writer.drain()
 
     try:
+        # espera a resposta do servidor com timeout de 10 segundos e retorna o status do unregister
         response = await asyncio.wait_for(reader.read(32000), timeout=10)
         responseMsg = response.decode('UTF-8').strip()
         responseJson = json.loads(responseMsg)
@@ -66,9 +77,14 @@ async def unregister(namespace, peer, port):
         
 async def discoverPeers(receiver):
     if len(receiver) > 0:
-        jsonString = {"type" : "DISCOVER", "namespace" : receiver[0]}
+        # cria a mensagem de discover em JSON com namespace específico
+        jsonString = {
+            "type" : "DISCOVER", 
+            "namespace" : receiver[0]
+        }
         message = json.dumps(jsonString)
         
+        # abre conexão com o servidor Rendezvous usando os parâmetros do config.json
         with open("config.json", "r") as configFile:
             configs = json.load(configFile)
         reader, writer = await asyncio.open_connection(configs["server_address"], configs["server_port"])
@@ -77,9 +93,11 @@ async def discoverPeers(receiver):
         await writer.drain()
         
     else:
+        # cria a mensagem de discover em JSON global
         jsonString = {"type" : "DISCOVER"}
         message = json.dumps(jsonString)
         
+        # abre conexão com o servidor Rendezvous usando os parâmetros do config.json
         with open("config.json", "r") as configFile:
             configs = json.load(configFile)
         reader, writer = await asyncio.open_connection(configs["server_address"], configs["server_port"])
@@ -88,6 +106,7 @@ async def discoverPeers(receiver):
         await writer.drain()
 
     try:
+        # em todo o caso, espera a resposta do servidor com timeout de 10 segundos e retorna a lista de peers
         response = await asyncio.wait_for(reader.readline(), timeout=10)
 
         responseMsg = response.decode('UTF-8')
