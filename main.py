@@ -197,6 +197,7 @@ async def commandRedirection(client):
             await showRtt(client)
         elif cmd == "/quit":
             clearOSScreen()
+            await sendBye(client)
             await unregister(client.namespace, client.name, client.port)
             return 1
         
@@ -208,6 +209,7 @@ async def commandRedirection(client):
             print("Comando inválido! Digite '/help' para ver comandos disponíveis.")
             
     except EOFError:
+        await sendBye(client)
         await unregister(client.namespace, client.name, client.port)
         return 1
     except Exception as e:

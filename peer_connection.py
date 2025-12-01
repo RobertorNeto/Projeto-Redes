@@ -189,6 +189,23 @@ async def listenToPeer(client: Client, reader, peer_id: str, writer):
                     future = client.pending_acks[ack_id]
                     if not future.done():
                         future.set_result(True)
+            
+            elif msg_type == "BYE":
+                # ao receber BYE, envia BYE_OK e encerra a conexão
+                loggerInfo(f"Recebido BYE de {peer_id}. Encerrando conexão.")
+                bye_packet = {
+                    "type": "BYE_OK",
+                    "msg_id": str(uuid.uuid4()),
+                    "timestamp": datetime.now().isoformat(),
+                    "ttl": 1,
+                    "src": f"{client.name}@{client.namespace}",
+                    "dest": peer_id,
+                }
+                writer.write((json.dumps(bye_packet) + '\n').encode('UTF-8'))
+                await writer.drain()
+
+                client.removePeer(peer_id)
+                break
 
     except (ConnectionResetError, asyncio.IncompleteReadError):
         loggerWarning(f"Conexão perdida com {peer_id}")
@@ -271,3 +288,27 @@ async def reconnectPeers(client: Client):
 
     print(f"⚠️ {closed_count} conexões foram reiniciadas.")
     print("⏳ O sistema tentará reconectar automaticamente em instantes.\n")
+
+async def sendBye(client: Client):
+    # envia mensagem de BYE para todos os peers conectados antes de sair
+    print("\n👋 Enviando mensagens de BYE para peers conectados...")
+    
+    for peer_id, data in list(client.peersConnected.items()):
+        if data.get("status") == "CONNECTED" and "writer" in data and data["writer"]:
+            try:
+                bye_packet = {
+                    "type": "BYE",
+                    "msg_id": str(uuid.uuid4()),
+                    "timestamp": datetime.now().isoformat(),
+                    "ttl": 1,
+                    "src": f"{client.name}@{client.namespace}",
+                    "dest": peer_id,
+                    "reason": "Encerrando conexão"
+                }
+                data["writer"].write((json.dumps(bye_packet) + '\n').encode('UTF-8'))
+                await data["writer"].drain()
+                loggerInfo(f"Mensagem BYE enviada para {peer_id}")
+            except Exception as e:
+                loggerWarning(f"Falha ao enviar BYE para {peer_id}: {e}")
+    
+    print("✅ Mensagens de BYE enviadas.\n")
