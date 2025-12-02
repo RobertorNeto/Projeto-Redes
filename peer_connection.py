@@ -264,19 +264,21 @@ async def reconnectPeers(client: Client):
     
     for peer_id, data in list(client.peersConnected.items()):
         
-        # reseta o estado de cada peer para forçar nova conexão
+        # reseta o estado de cada peer para forçar nova conexão, por meio de um backoff exponencial
+        exponential_backoff = 1
         if data.get("writer"):
-            try:
-                print(f"   Encerrando conexão com {peer_id}...")
-                data["writer"].close()
-            except Exception as e:
-                loggerWarning(f"Erro ao fechar socket de {peer_id}: {e}")
+            while True:
+                try:
+                    data["writer"].close()
+                    await data["writer"].wait_closed()
+                    break
+                except Exception as e:
+                    loggerWarning(f"Erro ao fechar socket de {peer_id}, tentando novamente: {e}")
+                    await asyncio.sleep(exponential_backoff * 10)
+                    exponential_backoff = min(exponential_backoff * 2, 40)  # limita o backoff máximo a 40 segundos
 
         data["writer"] = None
         data["status"] = "WAITING"
-
-        if hasattr(client, 'backoffTimer') and peer_id in client.backoffTimer:
-                client.backoffTimer[peer_id] = [0, 0]
 
         closed_count += 1
 

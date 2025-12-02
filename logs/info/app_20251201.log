@@ -1,0 +1,6 @@
+2025-12-01 21:37:33,743 [INFO] app: Servidor P2P iniciado. Escutando na porta 7070...
+2025-12-01 21:37:33,743 [INFO] app: Registrando no servidor Rendezvous...
+2025-12-01 21:37:33,850 [INFO] app: Registrado com sucesso!
+2025-12-01 21:37:34,160 [INFO] app: Novo peer descoberto: vm_giga@CIC
+2025-12-01 21:37:34,169 [INFO] app: Handshake concluído com sucesso: vm_giga@CIC
+2025-12-01 21:37:45,529 [INFO] app: Mensagem BYE enviada para vm_giga@CIC

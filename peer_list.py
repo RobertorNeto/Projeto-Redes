@@ -24,8 +24,6 @@ async def updatePeerList(client, peerList):
                 "status": "WAITING",
                 "writer": None
             }
-            if hasattr(client, 'backoffTimer'):
-                client.backoffTimer[peer_id] = [0, 0]
 
     local_peers = list(client.peersConnected.keys())
     
@@ -36,5 +34,3 @@ async def updatePeerList(client, peerList):
                 loggerDebug(f"Removendo peer obsoleto: {peer_id}")
                 del client.peersConnected[peer_id]
                 
-                if hasattr(client, 'backoffTimer') and peer_id in client.backoffTimer:
-                    del client.backoffTimer[peer_id]

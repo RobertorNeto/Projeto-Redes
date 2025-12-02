@@ -10,7 +10,6 @@ class Client:
         self.pending_acks = {}    
         self.inbound = set()      
         self.outbound = set()     
-        self.backoffTimer = {}   
         self.rtt_table = {}
         self.rtt_lock = asyncio.Lock()
         self.ping_timestamps = {}  
