@@ -216,35 +216,41 @@ async def listenToPeer(client: Client, reader, peer_id: str, writer):
              pass
 
 async def pingPeers(client: Client):
-    if not hasattr(client, "ping_timestamps"):
-        # inicializa o dicionário de timestamps de ping se não existir
-        client.ping_timestamps = {}
+    while True:
+        if not hasattr(client, "ping_timestamps"):
+            # inicializa o dicionário de timestamps de ping se não existir
+            client.ping_timestamps = {}
 
-    for peer_id, data in list(client.peersConnected.items()):
-        # envia PING apenas para peers conectados
-        if data.get("status") == "CONNECTED" and "writer" in data and data["writer"]:
-            try:
-                msg_id = str(uuid.uuid4())
-                current_time = time.time()
-                
-                # registra o timestamp do ping para cálculo de RTT ao receber o PONG
-                client.ping_timestamps[msg_id] = current_time
-                
-                packet = {
-                    "type": "PING",
-                    "msg_id": msg_id,
-                    "timestamp": current_time,
-                    "ttl": 1
-                }
-                
-                data["writer"].write((json.dumps(packet) + '\n').encode('UTF-8'))
-                await data["writer"].drain()
-                
-            except Exception as e:
-                loggerWarning(f"Falha ao enviar PING para {peer_id}: {e}")
-                client.ping_timestamps.pop(msg_id, None)
-                
-    return
+        for peer_id, data in list(client.peersConnected.items()):
+            # envia PING apenas para peers conectados
+            if data.get("status") == "CONNECTED" and "writer" in data and data["writer"]:
+                try:
+                    msg_id = str(uuid.uuid4())
+                    current_time = time.time()
+                    
+                    # registra o timestamp do ping para cálculo de RTT ao receber o PONG
+                    client.ping_timestamps[msg_id] = current_time
+                    
+                    packet = {
+                        "type": "PING",
+                        "msg_id": msg_id,
+                        "timestamp": current_time,
+                        "ttl": 1
+                    }
+                    
+                    data["writer"].write((json.dumps(packet) + '\n').encode('UTF-8'))
+                    await data["writer"].drain()
+                    
+                except Exception as e:
+                    loggerWarning(f"Falha ao enviar PING para {peer_id}: {e}")
+                    client.ping_timestamps.pop(msg_id, None)
+
+        with open("config.json", "r") as configFile:
+            config = json.load(configFile)
+            ping_timer = config['ping_timer']
+        await asyncio.sleep(ping_timer)
+        config.close()
+        return
 
 async def reconnectPeers(client: Client):
     # rotina para forçar a reconexão com todos os peers conectados (backoff exponencial)
