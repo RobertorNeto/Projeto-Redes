@@ -222,8 +222,9 @@ async def pingPeers(client: Client):
             client.ping_timestamps = {}
 
         for peer_id, data in list(client.peersConnected.items()):
-            # envia PING apenas para peers conectados
-            if data.get("status") == "CONNECTED" and "writer" in data and data["writer"]:
+            is_outbound = peer_id in client.outbound
+            # envia PING apenas para peers das conexoes outbound conectados
+            if is_outbound and data.get("status") == "CONNECTED" and "writer" in data and data["writer"]:
                 try:
                     msg_id = str(uuid.uuid4())
                     current_time = time.time()
