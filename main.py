@@ -11,6 +11,7 @@ from state import *
 from client import Client
 
 async def main():
+    validateConfig()
     setupLogger()
     
     try:
@@ -216,6 +217,22 @@ async def commandRedirection(client):
         loggerError("Erro processando comando", e)
         
     return 0
+
+def validateConfig():
+    with open("config.json", "r") as configFile:
+            config = json.load(configFile)
+    if (not isinstance(config.get("name"), str) or
+        not isinstance(config.get("port"), int) or
+        not isinstance(config.get("namespace"), str)):
+        raise ValueError("Configuração inválida no arquivo 'config.json'.")
+    
+    if (
+        not config["name"] or
+        not (1024 <= config["port"] <= 65535) or
+        not config["namespace"]
+    ):
+        raise ValueError("Valores inválidos no arquivo 'config.json'.")
+
 
 async def async_input(prompt: str = "") -> str:
     loop = asyncio.get_running_loop()
